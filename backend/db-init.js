@@ -8,7 +8,10 @@ import { fileURLToPath } from 'url';
 import db from './config/database.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_DIR = path.join(__dirname, '..', 'database');
+// Локально: backend и database — соседи. В Docker: /app/database
+const DB_DIR = fs.existsSync(path.join(__dirname, 'database'))
+  ? path.join(__dirname, 'database')
+  : path.join(__dirname, '..', 'database');
 
 const MIGRATIONS = [
   'migrate-notes-add-note-type.sql',

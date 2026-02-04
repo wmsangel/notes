@@ -8,12 +8,13 @@ COPY frontend/ ./
 ENV VITE_API_URL=/api
 RUN npm run build
 
-# Финальный образ: бэкенд + статика
+# Финальный образ: бэкенд + статика + схема БД
 FROM node:20-alpine
 WORKDIR /app
 COPY backend/package*.json ./
 RUN npm ci --omit=dev
 COPY backend/ ./
+COPY database/ ./database/
 COPY --from=frontend /app/frontend/dist ./public
 ENV NODE_ENV=production
 EXPOSE 3000
