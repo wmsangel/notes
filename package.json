@@ -1,0 +1,9 @@
+{
+  "name": "notes-app",
+  "private": true,
+  "description": "Notes app — deploy root for Railway etc.",
+  "scripts": {
+    "build": "cd frontend && npm ci && VITE_API_URL=/api npm run build && cd ../backend && rm -rf public && mkdir -p public && cp -r ../frontend/dist/* public && npm ci --omit=dev",
+    "start": "cd backend && NODE_ENV=production node server.js"
+  }
+}
