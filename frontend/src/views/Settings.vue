@@ -27,6 +27,19 @@
         </section>
 
         <section class="settings-section">
+          <h2 class="section-title">Кэш и данные</h2>
+          <p class="setting-desc">
+            Если что-то отображается неправильно после обновления версии, вы можете очистить локальный кэш приложения.
+          </p>
+          <div class="setting-row setting-row-space">
+            <span class="setting-label">Очистить кэш и локальные настройки</span>
+            <button class="btn btn-secondary" @click="clearCache" :disabled="clearing">
+              {{ clearing ? 'Очищаем…' : 'Очистить кэш' }}
+            </button>
+          </div>
+        </section>
+
+        <section class="settings-section">
           <h2 class="section-title">О приложении</h2>
           <p class="setting-desc">Notes System — заметки и задачи. Автосохранение заметок при редактировании.</p>
         </section>
@@ -36,11 +49,44 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref } from 'vue'
 import { useTheme } from '@/composables/useTheme'
+import { useUIStore } from '@/stores/ui'
 import MainLayout from '@/components/layout/MainLayout.vue'
 
 const { theme, toggleTheme } = useTheme()
+const uiStore = useUIStore()
+const clearing = ref(false)
+
+const clearCache = async () => {
+  if (clearing.value) return
+  if (!confirm('Очистить кэш приложения и локальные настройки?')) return
+  clearing.value = true
+  try {
+    try {
+      localStorage.clear()
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.clear()
+      }
+    } catch (_) {}
+
+    if (typeof caches !== 'undefined') {
+      const keys = await caches.keys()
+      await Promise.all(keys.map((k) => caches.delete(k)))
+    }
+
+    if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      const regs = await navigator.serviceWorker.getRegistrations()
+      await Promise.all(regs.map((r) => r.unregister()))
+    }
+
+    uiStore.showSuccess('Кэш очищен. Перезагрузите страницу.')
+  } catch (e) {
+    uiStore.showError('Не удалось полностью очистить кэш')
+  } finally {
+    clearing.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -94,6 +140,10 @@ const { theme, toggleTheme } = useTheme()
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+
+.setting-row-space {
+  margin-top: 16px;
 }
 
 .setting-label {
