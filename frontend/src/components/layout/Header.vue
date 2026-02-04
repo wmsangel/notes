@@ -45,6 +45,29 @@
 
       <div class="divider"></div>
 
+      <div class="install-wrap">
+        <button
+            v-if="pwa.isInstallable && !pwa.isInstalled"
+            class="btn btn-ghost install-btn"
+            @click="pwa.install()"
+            title="Установить приложение"
+        >
+          Установить
+        </button>
+        <button
+            v-else-if="pwa.isSafari && !pwa.isInstalled"
+            class="btn btn-icon btn-ghost"
+            @click="showSafariHint = !showSafariHint"
+            title="Как установить (Safari)"
+        >
+          <Download :size="20" />
+        </button>
+        <div v-if="pwa.isSafari && showSafariHint" class="safari-install-hint">
+          <strong>Установка в Safari:</strong><br>
+          <template v-if="pwa.isIOS">Нажмите «Поделиться» → «На экран «Домой»»</template>
+          <template v-else>Меню «Файл» → «Добавить на панель Dock»</template>
+        </div>
+      </div>
       <button class="btn btn-icon btn-ghost" @click="openSettings" title="Настройки">
         <Settings :size="20" />
       </button>
@@ -83,9 +106,12 @@ import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useNotesStore } from '@/stores/notes'
 import { useTheme } from '@/composables/useTheme'
-import { Menu, Search, RefreshCw, Settings, FileText, Sun, Moon } from 'lucide-vue-next'
+import { Menu, Search, RefreshCw, Settings, FileText, Sun, Moon, Download } from 'lucide-vue-next'
+import { usePwaInstall } from '@/composables/usePwaInstall'
 
 const router = useRouter()
+const pwa = usePwaInstall()
+const showSafariHint = ref(false)
 const uiStore = useUIStore()
 const notesStore = useNotesStore()
 const { theme, toggleTheme } = useTheme()
@@ -237,6 +263,33 @@ const formatDate = (date) => {
   height: 20px;
   background: var(--border);
   border-radius: 1px;
+}
+
+.install-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.install-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.safari-install-hint {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 220px;
+  padding: 10px 12px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: 12px;
+  color: var(--text-secondary);
+  z-index: 100;
+  white-space: normal;
 }
 
 .spinning {
