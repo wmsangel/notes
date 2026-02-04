@@ -6,6 +6,7 @@ import { markRaw } from 'vue'
 export const useUIStore = defineStore('ui', () => {
     const sidebarOpen = ref(true)
     const sidebarCollapsed = ref(false)
+    const _ignoreOverlayClickUntil = ref(0)
     const modalOpen = ref(false)
     const modalComponent = shallowRef(null)
     const modalProps = ref({})
@@ -34,6 +35,18 @@ export const useUIStore = defineStore('ui', () => {
         try {
             localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value ? 'true' : 'false')
         } catch (_) {}
+    }
+
+    // На мобильных есть overlay. При переходе по роуту (MainLayout размонтируется/смонтируется)
+    // иногда «проваливается» клик на overlay и меню схлопывается само.
+    // Защита: клики внутри sidebar выставляют «игнорировать overlay» на короткое время.
+    function ignoreNextOverlayClick(ms = 300) {
+        _ignoreOverlayClickUntil.value = Date.now() + ms
+    }
+
+    function handleSidebarOverlayClick() {
+        if (Date.now() < _ignoreOverlayClickUntil.value) return
+        toggleSidebarCollapse()
     }
 
     // Modal
@@ -96,6 +109,8 @@ export const useUIStore = defineStore('ui', () => {
         closeSidebar,
         openSidebar,
         toggleSidebarCollapse,
+        ignoreNextOverlayClick,
+        handleSidebarOverlayClick,
         openModal,
         closeModal,
         showToast,

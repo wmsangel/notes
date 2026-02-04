@@ -1,6 +1,10 @@
 <!-- frontend/src/components/layout/Sidebar.vue -->
 <template>
-  <aside class="sidebar" :class="{ 'collapsed': uiStore.sidebarCollapsed }">
+  <aside
+    class="sidebar"
+    :class="{ 'collapsed': uiStore.sidebarCollapsed }"
+    @pointerdown="uiStore.ignoreNextOverlayClick()"
+  >
     <div class="sidebar-header">
       <div class="logo">
         <FileText :size="24" />
@@ -256,7 +260,7 @@ const handleFolderSelect = (folderId) => {
 <style scoped>
 .sidebar {
   width: var(--sidebar-width);
-  height: 100vh;
+  height: 100%;
   background: var(--surface);
   border-right: 1px solid var(--border-subtle);
   display: flex;

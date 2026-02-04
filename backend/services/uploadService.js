@@ -56,6 +56,52 @@ class UploadService {
         await pool.query('DELETE FROM images WHERE note_id = ?', [noteId]);
         return true;
     }
+
+    // Attachments (любые файлы)
+    async saveAttachment(noteId, fileData) {
+        const { originalName, filename, filepath, size, mimetype } = fileData;
+        const [result] = await pool.query(
+            'INSERT INTO attachments (note_id, original_name, filename, filepath, size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
+            [noteId, originalName, filename, filepath, size, mimetype]
+        );
+        const [rows] = await pool.query('SELECT * FROM attachments WHERE id = ?', [result.insertId]);
+        return rows[0];
+    }
+
+    async getAttachmentsByNoteId(noteId) {
+        const [rows] = await pool.query(
+            'SELECT * FROM attachments WHERE note_id = ? ORDER BY uploaded_at DESC',
+            [noteId]
+        );
+        return rows;
+    }
+
+    async deleteAttachment(id) {
+        const [rows] = await pool.query('SELECT * FROM attachments WHERE id = ?', [id]);
+        if (!rows.length) throw new Error('Attachment not found');
+
+        try {
+            await fs.unlink(rows[0].filepath);
+        } catch (error) {
+            console.error('Error deleting file:', error);
+        }
+
+        await pool.query('DELETE FROM attachments WHERE id = ?', [id]);
+        return true;
+    }
+
+    async deleteAttachmentsByNoteId(noteId) {
+        const attachments = await this.getAttachmentsByNoteId(noteId);
+        for (const a of attachments) {
+            try {
+                await fs.unlink(a.filepath);
+            } catch (error) {
+                console.error('Error deleting file:', error);
+            }
+        }
+        await pool.query('DELETE FROM attachments WHERE note_id = ?', [noteId]);
+        return true;
+    }
 }
 
 const uploadService = new UploadService();

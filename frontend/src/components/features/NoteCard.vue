@@ -180,6 +180,17 @@ const deleteNote = () => {
   overflow: hidden;
 }
 
+@media (max-width: 768px) {
+  /* На мобилке делаем карточки компактнее */
+  .note-content {
+    display: none;
+  }
+
+  .note-card {
+    min-height: unset;
+  }
+}
+
 .note-footer {
   display: flex;
   align-items: center;

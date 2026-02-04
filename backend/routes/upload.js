@@ -3,7 +3,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { uploadImage, getImagesByNote, deleteImage } from '../controllers/uploadController.js';
+import { uploadImage, getImagesByNote, deleteImage, uploadAttachment, getAttachmentsByNote, deleteAttachment } from '../controllers/uploadController.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -42,5 +42,17 @@ const upload = multer({
 router.post('/', upload.single('image'), uploadImage);
 router.get('/note/:noteId', getImagesByNote);
 router.delete('/:id', deleteImage);
+
+// Attachments: любые файлы (лимит 25MB)
+const uploadAny = multer({
+    storage: storage,
+    limits: {
+        fileSize: 25 * 1024 * 1024
+    }
+});
+
+router.post('/attachment', uploadAny.single('file'), uploadAttachment);
+router.get('/attachment/note/:noteId', getAttachmentsByNote);
+router.delete('/attachment/:id', deleteAttachment);
 
 export default router;

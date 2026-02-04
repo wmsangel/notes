@@ -158,6 +158,28 @@
         />
       </div>
 
+      <div class="attachments" v-if="note?.id">
+        <div class="attachments-header">
+          <div class="attachments-title">Вложения</div>
+          <label class="btn btn-ghost btn-sm">
+            <input type="file" class="file-input" @change="onPickAttachment" />
+            Добавить файл
+          </label>
+        </div>
+
+        <div v-if="attachmentsLoading" class="attachments-loading">Загрузка…</div>
+        <div v-else-if="!attachments.length" class="attachments-empty">Нет вложений</div>
+        <div v-else class="attachments-list">
+          <div class="attachment" v-for="a in attachments" :key="a.id">
+            <a class="attachment-link" :href="a.url" target="_blank" rel="noopener">
+              {{ a.original_name || a.filename }}
+            </a>
+            <span class="attachment-meta">{{ formatBytes(a.size) }}</span>
+            <button class="btn btn-icon-sm btn-ghost" @click="removeAttachment(a)" title="Удалить">×</button>
+          </div>
+        </div>
+      </div>
+
       <div class="note-footer-meta" v-if="note">
         <span class="note-meta-date">
           <Clock :size="14" />
@@ -214,6 +236,7 @@ import MainLayout from '@/components/layout/MainLayout.vue'
 import TiptapEditor from '@/components/features/TiptapEditor.vue'
 import PageView from '@/components/features/PageView.vue'
 import { ArrowLeft, Star, Trash2, Clock, Loader, Check, Lock, Unlock, X, Eye, Pencil } from 'lucide-vue-next'
+import { uploadApi } from '@/services/api/upload'
 
 const route = useRoute()
 const router = useRouter()
@@ -247,6 +270,58 @@ const newTag = ref('')
 const tagInputRef = ref(null)
 const pageViewMode = ref('view')
 
+// Attachments
+const attachments = ref([])
+const attachmentsLoading = ref(false)
+
+async function loadAttachments(noteId) {
+  if (!noteId) return
+  attachmentsLoading.value = true
+  try {
+    const res = await uploadApi.getAttachmentsByNote(noteId)
+    attachments.value = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    attachments.value = []
+  } finally {
+    attachmentsLoading.value = false
+  }
+}
+
+const onPickAttachment = async (e) => {
+  const file = e.target?.files?.[0]
+  e.target.value = ''
+  if (!file || !note.value?.id) return
+  try {
+    await uploadApi.uploadAttachment(note.value.id, file)
+    await loadAttachments(note.value.id)
+    uiStore.showSuccess('Файл добавлен')
+  } catch (err) {
+    uiStore.showError(err?.response?.data?.error || err?.message || 'Ошибка загрузки файла')
+  }
+}
+
+const removeAttachment = async (a) => {
+  if (!a?.id) return
+  if (!confirm('Удалить вложение?')) return
+  try {
+    await uploadApi.deleteAttachment(a.id)
+    attachments.value = attachments.value.filter(x => x.id !== a.id)
+    uiStore.showSuccess('Вложение удалено')
+  } catch (err) {
+    uiStore.showError(err?.response?.data?.error || err?.message || 'Ошибка удаления')
+  }
+}
+
+function formatBytes(bytes) {
+  const n = Number(bytes || 0)
+  if (!n) return ''
+  const units = ['B','KB','MB','GB']
+  let v = n
+  let i = 0
+  while (v >= 1024 && i < units.length - 1) { v /= 1024; i++ }
+  return `${v.toFixed(v >= 10 || i === 0 ? 0 : 1)} ${units[i]}`
+}
+
 const isPage = computed(() => (note.value?.note_type || 'note') === 'page')
 
 let saveTimeout = null
@@ -269,6 +344,7 @@ async function loadNoteForId(noteId) {
     return
   }
   loadNoteContent()
+  await loadAttachments(noteId)
   const isEmptyTitle = !(note.value.title && String(note.value.title).trim())
   if (isEmptyTitle) {
     await nextTick()

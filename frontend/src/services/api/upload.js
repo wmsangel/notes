@@ -20,5 +20,24 @@ export const uploadApi = {
 
     deleteImage(id) {
         return api.delete(`/upload/${id}`)
+    },
+
+    uploadAttachment(noteId, file) {
+        const formData = new FormData()
+        formData.append('file', file)
+        formData.append('noteId', noteId)
+        return api.post('/upload/attachment', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        })
+    },
+
+    getAttachmentsByNote(noteId) {
+        return api.get(`/upload/attachment/note/${noteId}`)
+    },
+
+    deleteAttachment(id) {
+        return api.delete(`/upload/attachment/${id}`)
     }
 }

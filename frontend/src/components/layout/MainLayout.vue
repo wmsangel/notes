@@ -5,7 +5,7 @@
     <div
       class="sidebar-overlay"
       aria-hidden="true"
-      @click="uiStore.toggleSidebarCollapse"
+      @click="uiStore.handleSidebarOverlayClick"
     />
 
     <div class="main-content">
@@ -67,8 +67,9 @@ onUnmounted(() => {
 .main-layout {
   display: flex;
   width: 100%;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg-page);
+  overflow: hidden; /* чтобы скроллилась только правая часть */
 }
 
 .main-content {
@@ -83,6 +84,7 @@ onUnmounted(() => {
   flex: 1;
   padding: 20px 24px;
   overflow-y: auto;
+  min-height: 0; /* важно для корректного flex-scroll */
 }
 
 .sidebar-overlay {

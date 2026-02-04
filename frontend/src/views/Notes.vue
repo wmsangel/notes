@@ -93,13 +93,29 @@
           class="notes-grid"
           ghost-class="drag-ghost"
           chosen-class="drag-chosen"
+          handle=".drag-handle"
+          :delay="250"
+          :delayOnTouchOnly="true"
+          :touchStartThreshold="8"
           @end="onReorderEnd"
       >
         <template #item="{ element: note }">
-          <NoteCard
-              :note="note"
-              @delete="handleDelete"
-          />
+          <div class="note-card-wrap">
+            <button
+              v-if="filter === 'all'"
+              class="drag-handle drag-handle--card"
+              type="button"
+              title="Перетащить"
+              aria-label="Перетащить"
+              @click.stop
+            >
+              ⠿
+            </button>
+            <NoteCard
+                :note="note"
+                @delete="handleDelete"
+            />
+          </div>
         </template>
       </draggable>
 
@@ -112,6 +128,10 @@
           class="notes-list"
           ghost-class="drag-ghost"
           chosen-class="drag-chosen"
+          handle=".drag-handle"
+          :delay="250"
+          :delayOnTouchOnly="true"
+          :touchStartThreshold="8"
           @end="onReorderEnd"
       >
         <template #item="{ element: note }">
@@ -119,6 +139,16 @@
               class="note-list-item card card-hover"
               @click="$router.push(`/notes/${note.id}`)"
           >
+          <button
+            v-if="filter === 'all'"
+            class="drag-handle drag-handle--row"
+            type="button"
+            title="Перетащить"
+            aria-label="Перетащить"
+            @click.stop
+          >
+            ⠿
+          </button>
           <div class="list-item-content">
             <div class="list-item-header">
               <h3 class="list-item-title">{{ note.title || 'Без названия' }}</h3>
@@ -486,6 +516,43 @@ const getContentPreview = (note) => {
   padding: 20px;
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
+}
+
+.note-card-wrap {
+  position: relative;
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay);
+  color: var(--text-tertiary);
+  border-radius: 10px;
+  cursor: grab;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle--row {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+}
+
+.drag-handle--card {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
 }
 
 .list-item-content {
@@ -574,6 +641,11 @@ const getContentPreview = (note) => {
 
   .notes-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* На мобилке делаем список компактнее: скрываем превью/описание */
+  .list-item-preview {
+    display: none;
   }
 
   .list-item-actions {

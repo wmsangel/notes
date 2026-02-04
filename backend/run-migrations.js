@@ -20,6 +20,7 @@ const MIGRATIONS = [
   'migrate-notes-add-position.sql',
   'migrate-todo-lists-add-tags-color.sql',
   'migrate-todo-note-links.sql',
+  'migrate-note-attachments.sql',
 ]
 
 // Коды ошибок MySQL, которые можно игнорировать (уже применено)
