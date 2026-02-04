@@ -64,7 +64,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
@@ -89,6 +89,19 @@ const hasChildren = computed(() => {
   return props.folder.children && props.folder.children.length > 0
 })
 
+function branchContainsId(node, id) {
+  if (!node) return false
+  if (String(node.id) === String(id)) return true
+  if (!node.children) return false
+  return node.children.some(child => branchContainsId(child, id))
+}
+
+const activeInBranch = computed(() => {
+  const currentId = route.params.id
+  if (!currentId || route.name !== 'Folder') return false
+  return branchContainsId(props.folder, currentId)
+})
+
 const isActive = computed(() => {
   return route.params.id == props.folder.id || foldersStore.selectedFolderId == props.folder.id
 })
@@ -102,6 +115,18 @@ const emit = defineEmits(['select'])
 const handleClick = () => {
   emit('select', props.folder.id)
 }
+
+onMounted(() => {
+  if (activeInBranch.value) {
+    isExpanded.value = true
+  }
+})
+
+watch(activeInBranch, (val) => {
+  if (val) {
+    isExpanded.value = true
+  }
+})
 
 const handleAddSubfolder = () => {
   uiStore.openModal(FolderModal, {
