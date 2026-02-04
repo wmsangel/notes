@@ -1,6 +1,7 @@
-# Сборка фронтенда
+# Сборка фронтенда (ограничение памяти для Railway)
 FROM node:20-alpine AS frontend
 WORKDIR /app/frontend
+ENV NODE_OPTIONS=--max-old-space-size=384
 COPY frontend/package*.json ./
 RUN npm ci
 COPY frontend/ ./
