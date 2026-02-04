@@ -30,6 +30,7 @@ async function checkDatabase() {
         console.error(
             '[DB] Нет переменных подключения к MySQL (DATABASE_URL, MYSQL_URL или DB_*/MYSQL*).'
         );
+        console.error('[DB] В контейнере есть:', Object.keys(process.env).filter(k => /mysql|database|db_/i.test(k)).join(', ') || '(ни одной из известных)');
         return false;
     }
     try {
