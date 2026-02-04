@@ -34,10 +34,6 @@
       </div>
     </div>
 
-    <div class="note-content" v-if="contentPreview">
-      {{ contentPreview }}
-    </div>
-
     <div class="note-footer" v-if="note.tags && note.tags.length">
       <div class="note-tags">
         <span
@@ -56,7 +52,6 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNotesStore } from '@/stores/notes'
 import { useDashboardStore } from '@/stores/dashboard'
@@ -74,14 +69,6 @@ const emit = defineEmits(['update', 'delete'])
 const router = useRouter()
 const notesStore = useNotesStore()
 const dashboardStore = useDashboardStore()
-
-const contentPreview = computed(() => {
-  if (!props.note.content) return ''
-
-  // Удаляем HTML теги и берем первые 150 символов
-  const text = props.note.content.replace(/<[^>]*>/g, '').trim()
-  return text.length > 150 ? text.substring(0, 150) + '...' : text
-})
 
 const openNote = () => {
   router.push(`/notes/${props.note.id}`)
@@ -114,12 +101,11 @@ const deleteNote = () => {
 
 <style scoped>
 .note-card {
-  padding: 16px 18px;
+  padding: 14px 16px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-height: 160px;
+  gap: 8px;
   border-radius: var(--radius);
 }
 
@@ -167,28 +153,6 @@ const deleteNote = () => {
 
 .note-card:hover .note-actions {
   opacity: 1;
-}
-
-.note-content {
-  flex: 1;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--text-secondary);
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (max-width: 768px) {
-  /* На мобилке делаем карточки компактнее */
-  .note-content {
-    display: none;
-  }
-
-  .note-card {
-    min-height: unset;
-  }
 }
 
 .note-footer {

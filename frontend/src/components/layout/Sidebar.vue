@@ -248,6 +248,9 @@ const openFolderModal = () => {
 }
 
 const handleFolderSelect = (folderId) => {
+  // На мобилке, когда выбираем подпапку, игнорируем следующий клик по overlay,
+  // чтобы меню не схлопывалось.
+  uiStore.ignoreNextOverlayClick()
   if (navigating.value) return
   navigating.value = true
   foldersStore.selectFolder(folderId)

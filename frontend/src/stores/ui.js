@@ -37,10 +37,10 @@ export const useUIStore = defineStore('ui', () => {
         } catch (_) {}
     }
 
-    // На мобильных есть overlay. При переходе по роуту (MainLayout размонтируется/смонтируется)
-    // иногда «проваливается» клик на overlay и меню схлопывается само.
-    // Защита: клики внутри sidebar выставляют «игнорировать overlay» на короткое время.
-    function ignoreNextOverlayClick(ms = 300) {
+    // На мобильных есть overlay. При переходе по роуту клик по пункту меню
+    // иногда «проваливается» на overlay и меню схлопывается само.
+    // Защита: клики внутри sidebar выставляют «игнорировать overlay» на чуть более длительное время.
+    function ignoreNextOverlayClick(ms = 1000) {
         _ignoreOverlayClickUntil.value = Date.now() + ms
     }
 

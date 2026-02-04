@@ -127,10 +127,6 @@
             <Loader class="spinner" :size="16" />
             <span>Сохранение...</span>
           </div>
-          <div class="save-indicator saved" v-else-if="saved">
-            <Check :size="16" />
-            <span>Сохранено</span>
-          </div>
           <button class="btn btn-ghost" @click="deleteNote">
             <Trash2 :size="18" />
             Удалить
@@ -161,9 +157,9 @@
       <div class="attachments" v-if="note?.id">
         <div class="attachments-header">
           <div class="attachments-title">Вложения</div>
-          <label class="btn btn-ghost btn-sm">
+          <label class="attachments-upload-btn">
             <input type="file" class="file-input" @change="onPickAttachment" />
-            Добавить файл
+            <span class="attachments-upload-text">Добавить файл</span>
           </label>
         </div>
 
@@ -190,6 +186,13 @@
         </span>
       </div>
     </div>
+
+    <Transition name="fade">
+      <div v-if="saved" class="save-floating">
+        <Check :size="16" />
+        <span>Сохранено</span>
+      </div>
+    </Transition>
 
     <!-- Модалка настройки защиты -->
     <div class="protection-modal" v-if="showProtectionModal" @click.self="showProtectionModal = false">
@@ -759,6 +762,23 @@ const formatDate = (date) => {
   color: var(--success);
 }
 
+.save-floating {
+  position: fixed;
+  right: calc(24px + var(--safe-right));
+  bottom: calc(90px + var(--safe-bottom));
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--surface-overlay);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--success);
+  z-index: 200;
+}
+
 .note-title-input {
   width: 100%;
   padding: 16px 0 24px;
@@ -858,6 +878,95 @@ const formatDate = (date) => {
 
 .tag-input:focus {
   border-color: var(--primary);
+}
+
+.attachments {
+  margin-top: 24px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--border-subtle);
+}
+
+.attachments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.attachments-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+}
+
+.attachments-upload-btn {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.attachments-upload-btn .file-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.attachments-upload-text {
+  white-space: nowrap;
+}
+
+.attachments-loading,
+.attachments-empty {
+  font-size: 13px;
+  color: var(--text-tertiary);
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  padding: 4px 0;
+}
+
+.attachment-link {
+  flex: 1;
+  min-width: 0;
+  color: var(--primary);
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-link:hover {
+  text-decoration: underline;
+}
+
+.attachment-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .editor-wrapper {

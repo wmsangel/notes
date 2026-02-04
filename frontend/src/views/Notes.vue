@@ -159,10 +159,6 @@
               </div>
             </div>
 
-            <p class="list-item-preview" v-if="getContentPreview(note)">
-              {{ getContentPreview(note) }}
-            </p>
-
             <div class="list-item-footer">
               <div class="list-item-actions" @click.stop>
                 <button
@@ -597,13 +593,6 @@ const getContentPreview = (note) => {
   color: var(--text-tertiary);
 }
 
-.list-item-preview {
-  font-size: 14px;
-  color: var(--text-secondary);
-  line-height: 1.6;
-  margin: 0;
-}
-
 .list-item-footer {
   display: flex;
   align-items: center;
@@ -641,11 +630,6 @@ const getContentPreview = (note) => {
 
   .notes-grid {
     grid-template-columns: 1fr;
-  }
-
-  /* На мобилке делаем список компактнее: скрываем превью/описание */
-  .list-item-preview {
-    display: none;
   }
 
   .list-item-actions {
