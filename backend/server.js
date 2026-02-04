@@ -5,6 +5,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import pool from './config/database.js';
+import { initDb } from './db-init.js';
 import folderRoutes from './routes/folders.js';
 import noteRoutes from './routes/notes.js';
 import todoRoutes from './routes/todos.js';
@@ -18,28 +19,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Проверка подключения к БД при старте
+// Проверка подключения к БД и инициализация схемы/миграций
 async function checkDatabase() {
-    const required = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'];
-    const missing = required.filter((key) => !process.env[key]);
-    if (missing.length) {
+    const hasDbConfig =
+        process.env.DATABASE_URL ||
+        process.env.MYSQL_URL ||
+        (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME) ||
+        (process.env.MYSQLHOST && process.env.MYSQLUSER && process.env.MYSQLPASSWORD && process.env.MYSQLDATABASE);
+    if (!hasDbConfig) {
         console.error(
-            '[DB] Не заданы переменные окружения:',
-            missing.join(', '),
-            '\nСкопируйте backend/.env.example в backend/.env и укажите данные MySQL.'
+            '[DB] Нет переменных подключения к MySQL (DATABASE_URL, MYSQL_URL или DB_*/MYSQL*).'
         );
         return false;
     }
     try {
         await pool.query('SELECT 1');
         console.log('[DB] Подключение к MySQL успешно.');
+        await initDb();
         return true;
     } catch (err) {
-        console.error(
-            '[DB] Ошибка подключения к MySQL:',
-            err.message,
-            '\nУбедитесь, что MySQL запущен, база создана и таблицы созданы (database/schema.sql).'
-        );
+        console.error('[DB] Ошибка:', err.message);
         return false;
     }
 }

@@ -18,6 +18,8 @@ const MIGRATIONS = [
   'migrate-notes-add-note-type.sql',
   'migrate-notes-add-protection.sql',
   'migrate-notes-add-position.sql',
+  'migrate-todo-lists-add-tags-color.sql',
+  'migrate-todo-note-links.sql',
 ]
 
 // Коды ошибок MySQL, которые можно игнорировать (уже применено)
@@ -67,11 +69,13 @@ async function runMigration(filename) {
 }
 
 async function main() {
-  const required = ['DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']
-  const missing = required.filter(key => !process.env[key])
-  if (missing.length) {
-    console.error('[migrate] Нет переменных окружения:', missing.join(', '))
-    console.error('Создайте backend/.env из backend/.env.example')
+  const hasDbConfig =
+    process.env.DATABASE_URL ||
+    process.env.MYSQL_URL ||
+    (process.env.DB_HOST && process.env.DB_USER && process.env.DB_PASSWORD && process.env.DB_NAME) ||
+    (process.env.MYSQLHOST && process.env.MYSQLUSER && process.env.MYSQLPASSWORD && process.env.MYSQLDATABASE)
+  if (!hasDbConfig) {
+    console.error('[migrate] Нет переменных подключения (DATABASE_URL, MYSQL_URL или DB_*/MYSQL*).')
     process.exit(1)
   }
   try {
