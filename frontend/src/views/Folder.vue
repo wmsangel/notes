@@ -22,7 +22,7 @@
             <button
                 class="view-btn"
                 :class="{ 'active': viewMode === 'grid' }"
-                @click="viewMode = 'grid'"
+                @click="viewMode = 'grid'; saveViewMode()"
                 title="Сетка"
             >
               <Grid :size="18" />
@@ -30,7 +30,7 @@
             <button
                 class="view-btn"
                 :class="{ 'active': viewMode === 'list' }"
-                @click="viewMode = 'list'"
+                @click="viewMode = 'list'; saveViewMode()"
                 title="Список"
             >
               <List :size="18" />
@@ -65,43 +65,90 @@
       </div>
 
       <template v-else>
-        <div v-if="viewMode === 'grid'" class="notes-grid">
-          <NoteCard
-              v-for="note in notes"
-              :key="note.id"
-              :note="note"
-              @delete="handleDelete"
-          />
-        </div>
-        <div v-else class="notes-list">
-          <div
-              v-for="note in notes"
-              :key="note.id"
-              class="note-list-item card card-hover"
-              @click="$router.push(`/notes/${note.id}`)"
-          >
-            <div class="list-item-content">
-              <div class="list-item-header">
-                <h3 class="list-item-title">{{ note.title }}</h3>
-                <div class="list-item-badges">
-                  <Pin v-if="note.is_pinned" :size="14" class="badge-icon pinned" />
-                  <Star v-if="note.is_favorite" :size="14" class="badge-icon favorite" fill="currentColor" />
+        <div class="drag-hint" v-if="displayList.length">Перетащите для изменения порядка</div>
+
+        <draggable
+            v-if="viewMode === 'grid'"
+            v-model="displayList"
+            item-key="id"
+            class="notes-grid notes-grid--can-reorder"
+            ghost-class="drag-ghost"
+            chosen-class="drag-chosen"
+            handle=".drag-handle"
+            :delay="250"
+            :delayOnTouchOnly="true"
+            :touchStartThreshold="8"
+            @end="onReorderEnd"
+        >
+          <template #item="{ element: note }">
+            <div class="note-card-wrap">
+              <button
+                  class="drag-handle drag-handle--card"
+                  type="button"
+                  title="Перетащить"
+                  aria-label="Перетащить"
+                  @click.stop
+              >
+                ⠿
+              </button>
+              <NoteCard
+                  :note="note"
+                  @delete="handleDelete"
+              />
+            </div>
+          </template>
+        </draggable>
+
+        <draggable
+            v-else
+            v-model="displayList"
+            item-key="id"
+            class="notes-list notes-list--can-reorder"
+            ghost-class="drag-ghost"
+            chosen-class="drag-chosen"
+            handle=".drag-handle"
+            :delay="250"
+            :delayOnTouchOnly="true"
+            :touchStartThreshold="8"
+            @end="onReorderEnd"
+        >
+          <template #item="{ element: note }">
+            <div
+                class="note-list-item card card-hover"
+                @click="$router.push(`/notes/${note.id}`)"
+            >
+              <button
+                  class="drag-handle drag-handle--row"
+                  type="button"
+                  title="Перетащить"
+                  aria-label="Перетащить"
+                  @click.stop
+              >
+                ⠿
+              </button>
+              <div class="list-item-content">
+                <div class="list-item-header">
+                  <h3 class="list-item-title">{{ note.title }}</h3>
+                  <div class="list-item-badges">
+                    <Pin v-if="note.is_pinned" :size="14" class="badge-icon pinned" />
+                    <Star v-if="note.is_favorite" :size="14" class="badge-icon favorite" fill="currentColor" />
+                  </div>
                 </div>
-              </div>
-              <p class="list-item-preview" v-if="getContentPreview(note)">{{ getContentPreview(note) }}</p>
-              <div class="list-item-footer">
-                <div class="list-item-actions" @click.stop>
-                  <button class="btn btn-icon-sm btn-ghost" @click="toggleFavorite(note.id)" :title="note.is_favorite ? 'Убрать из избранного' : 'В избранное'">
-                    <Star :size="16" :fill="note.is_favorite ? 'currentColor' : 'none'" />
-                  </button>
-                  <button class="btn btn-icon-sm btn-ghost" @click="handleDelete(note.id)" title="Удалить">
-                    <Trash2 :size="16" />
-                  </button>
+                <p class="list-item-preview" v-if="getContentPreview(note)">{{ getContentPreview(note) }}</p>
+                <div class="list-item-footer">
+                  <div class="list-item-actions" @click.stop>
+                    <button class="btn btn-icon-sm btn-ghost" @click="toggleFavorite(note.id)" :title="note.is_favorite ? 'Убрать из избранного' : 'В избранное'">
+                      <Star :size="16" :fill="note.is_favorite ? 'currentColor' : 'none'" />
+                    </button>
+                    <button class="btn btn-icon-sm btn-ghost" @click="handleDelete(note.id)" title="Удалить">
+                      <Trash2 :size="16" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </template>
+        </draggable>
       </template>
     </div>
 
@@ -122,8 +169,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import draggable from 'vuedraggable'
 import { useFoldersStore } from '@/stores/folders'
 import { useNotesStore } from '@/stores/notes'
 import { useUIStore } from '@/stores/ui'
@@ -141,7 +189,12 @@ const uiStore = useUIStore()
 const loading = ref(false)
 const folder = ref(null)
 const notes = ref([])
-const viewMode = ref('grid')
+const displayList = ref([])
+const viewMode = ref(localStorage.getItem('folderViewMode') || 'grid')
+
+function syncDisplayList() {
+  displayList.value = [...notes.value]
+}
 
 async function loadFolder() {
   const id = route.params.id
@@ -150,6 +203,7 @@ async function loadFolder() {
   loading.value = true
   folder.value = null
   notes.value = []
+  displayList.value = []
 
   try {
     await foldersStore.fetchFolders()
@@ -158,6 +212,7 @@ async function loadFolder() {
     if (folder.value) {
       await notesStore.fetchNotes({ folder_id: folder.value.id })
       notes.value = notesStore.notes
+      syncDisplayList()
     }
   } catch (error) {
     uiStore.showError('Ошибка загрузки папки')
@@ -165,6 +220,8 @@ async function loadFolder() {
     loading.value = false
   }
 }
+
+watch(notes, syncDisplayList, { deep: true })
 
 onMounted(loadFolder)
 
@@ -221,6 +278,21 @@ const toggleFavorite = async (noteId) => {
     note.is_favorite = !note.is_favorite
   } catch (error) {
     uiStore.showError('Ошибка обновления')
+  }
+}
+
+function saveViewMode() {
+  localStorage.setItem('folderViewMode', viewMode.value)
+}
+
+async function onReorderEnd() {
+  if (!displayList.value.length) return
+  try {
+    await notesStore.reorderNotes(displayList.value.map(n => n.id))
+    notes.value = notesStore.notes
+    syncDisplayList()
+  } catch (e) {
+    uiStore.showError('Не удалось сохранить порядок')
   }
 }
 </script>
@@ -359,6 +431,30 @@ const toggleFavorite = async (noteId) => {
 .view-btn:hover { color: var(--text); }
 .view-btn.active { background: var(--bg); color: var(--primary); }
 
+.drag-hint {
+  font-size: 13px;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+
+.drag-ghost {
+  opacity: 0.5;
+}
+
+.drag-chosen {
+  opacity: 0.9;
+}
+
+.notes-grid.notes-grid--can-reorder,
+.notes-list.notes-list--can-reorder {
+  cursor: grab;
+}
+
+.notes-grid.notes-grid--can-reorder:active,
+.notes-list.notes-list--can-reorder:active {
+  cursor: grabbing;
+}
+
 .notes-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -371,10 +467,47 @@ const toggleFavorite = async (noteId) => {
   gap: 12px;
 }
 
+.note-card-wrap {
+  position: relative;
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay);
+  color: var(--text-tertiary);
+  border-radius: 10px;
+  cursor: grab;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle--row {
+  position: absolute;
+  left: 12px;
+  top: 12px;
+}
+
+.drag-handle--card {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 2;
+}
+
 .note-list-item {
-  padding: 20px;
+  padding: 20px 20px 20px 54px;
   cursor: pointer;
   transition: var(--transition);
+  position: relative;
 }
 
 .list-item-content { display: flex; flex-direction: column; gap: 8px; }

@@ -65,20 +65,48 @@ class DashboardService {
     }
 
     async getStats() {
-        // Получаем различную статистику для дашборда
         const [notesCount] = await pool.query('SELECT COUNT(*) as count FROM notes');
         const [foldersCount] = await pool.query('SELECT COUNT(*) as count FROM folders');
         const [todosCount] = await pool.query(
             'SELECT COUNT(*) as total, SUM(is_completed) as completed FROM todo_items'
         );
         const [recentNotes] = await pool.query(
-            'SELECT id, title, updated_at FROM notes ORDER BY updated_at DESC LIMIT 5'
+            `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+             FROM notes n
+             LEFT JOIN folders f ON n.folder_id = f.id
+             ORDER BY n.updated_at DESC LIMIT 5`
         );
         const [favorites] = await pool.query(
             'SELECT id, title, updated_at FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
         );
-        const [pinned] = await pool.query(
-            'SELECT id, title, updated_at FROM notes WHERE is_pinned = 1 ORDER BY updated_at DESC LIMIT 10'
+        const [dashboardNotes] = await pool.query(
+            `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+             FROM notes n
+             LEFT JOIN folders f ON n.folder_id = f.id
+             WHERE n.show_on_dashboard = 1
+             ORDER BY n.updated_at DESC LIMIT 20`
+        );
+        const [foldersList] = await pool.query(
+            'SELECT id, name, parent_id FROM folders ORDER BY position ASC, name ASC'
+        );
+        const [todoLists] = await pool.query(
+            `SELECT tl.id, tl.title, tl.folder_id, f.name AS folder_name,
+                    COUNT(ti.id) AS total,
+                    SUM(CASE WHEN ti.is_completed = 1 THEN 1 ELSE 0 END) AS completed
+             FROM todo_lists tl
+             LEFT JOIN folders f ON tl.folder_id = f.id
+             LEFT JOIN todo_items ti ON tl.id = ti.list_id
+             GROUP BY tl.id
+             ORDER BY tl.updated_at DESC`
+        );
+        const [tasksDueToday] = await pool.query(
+            `SELECT ti.id, ti.title, ti.is_completed, ti.due_date, ti.list_id,
+                    tl.title AS list_title, tl.folder_id, f.name AS folder_name
+             FROM todo_items ti
+             JOIN todo_lists tl ON ti.list_id = tl.id
+             LEFT JOIN folders f ON tl.folder_id = f.id
+             WHERE DATE(ti.due_date) = CURDATE()
+             ORDER BY ti.is_completed ASC, ti.due_date ASC`
         );
         const tags = await this.getUniqueTags();
 
@@ -88,15 +116,33 @@ class DashboardService {
                 recent: recentNotes
             },
             folders: {
-                total: foldersCount[0].count
+                total: foldersCount[0].count,
+                list: foldersList
             },
             todos: {
                 total: todosCount[0].total || 0,
                 completed: todosCount[0].completed || 0,
-                pending: (todosCount[0].total || 0) - (todosCount[0].completed || 0)
+                pending: (todosCount[0].total || 0) - (todosCount[0].completed || 0),
+                lists: todoLists.map((row) => ({
+                    id: row.id,
+                    title: row.title,
+                    folder_id: row.folder_id,
+                    folder_name: row.folder_name || null,
+                    total: parseInt(row.total) || 0,
+                    completed: parseInt(row.completed) || 0
+                })),
+                tasks_due_today: tasksDueToday.map((row) => ({
+                    id: row.id,
+                    title: row.title,
+                    is_completed: Boolean(row.is_completed),
+                    due_date: row.due_date,
+                    list_id: row.list_id,
+                    list_title: row.list_title,
+                    folder_name: row.folder_name || null
+                }))
             },
-            favorites: favorites,
-            pinned: pinned,
+            favorites,
+            dashboard_notes: dashboardNotes,
             tags
         };
     }

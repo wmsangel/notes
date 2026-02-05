@@ -107,6 +107,14 @@
           </button>
           <button
               class="btn btn-icon btn-ghost"
+              @click="toggleShowOnDashboard"
+              :class="{ 'active': note?.show_on_dashboard }"
+              title="Показать на главной"
+          >
+            <LayoutDashboard :size="20" :fill="note?.show_on_dashboard ? 'currentColor' : 'none'" />
+          </button>
+          <button
+              class="btn btn-icon btn-ghost"
               :class="{ 'active': note?.is_protected }"
               @click="toggleProtection"
               title="Защита паролем"
@@ -238,7 +246,7 @@ import { useDashboardStore } from '@/stores/dashboard'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TiptapEditor from '@/components/features/TiptapEditor.vue'
 import PageView from '@/components/features/PageView.vue'
-import { ArrowLeft, Star, Trash2, Clock, Loader, Check, Lock, Unlock, X, Eye, Pencil } from 'lucide-vue-next'
+import { ArrowLeft, Star, Trash2, Clock, Loader, Check, Lock, Unlock, X, Eye, Pencil, LayoutDashboard } from 'lucide-vue-next'
 import { uploadApi } from '@/services/api/upload'
 
 const route = useRoute()
@@ -599,6 +607,17 @@ const toggleFavorite = async () => {
     dashboardStore.fetchStats()
   } catch (error) {
     uiStore.showError('Ошибка обновления избранного')
+  }
+}
+
+const toggleShowOnDashboard = async () => {
+  try {
+    const next = !note.value.show_on_dashboard
+    await notesStore.updateNote(note.value.id, { show_on_dashboard: next })
+    note.value.show_on_dashboard = next
+    dashboardStore.fetchStats()
+  } catch (error) {
+    uiStore.showError('Ошибка обновления')
   }
 }
 

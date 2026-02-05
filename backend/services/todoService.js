@@ -116,15 +116,33 @@ export const todoService = {
     },
 
     async updateItem(id, data) {
-        const { title, description, priority, due_date } = data
-
+        const updates = []
+        const values = []
+        if (data.title !== undefined) {
+            updates.push('title = ?')
+            values.push(data.title)
+        }
+        if (data.description !== undefined) {
+            updates.push('description = ?')
+            values.push(data.description ?? null)
+        }
+        if (data.priority !== undefined) {
+            updates.push('priority = ?')
+            values.push(data.priority)
+        }
+        if (data.due_date !== undefined) {
+            updates.push('due_date = ?')
+            values.push(data.due_date ?? null)
+        }
+        if (updates.length === 0) {
+            const [items] = await db.query('SELECT * FROM todo_items WHERE id = ?', [id])
+            return items[0]
+        }
+        values.push(id)
         await db.query(
-            `UPDATE todo_items 
-       SET title = ?, description = ?, priority = ?, due_date = ?
-       WHERE id = ?`,
-            [title, description || null, priority, due_date || null, id]
+            `UPDATE todo_items SET ${updates.join(', ')} WHERE id = ?`,
+            values
         )
-
         const [items] = await db.query('SELECT * FROM todo_items WHERE id = ?', [id])
         return items[0]
     },

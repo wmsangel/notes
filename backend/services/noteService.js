@@ -31,6 +31,7 @@ function noteToListItem(note) {
         folder_id: note.folder_id,
         is_favorite: Boolean(note.is_favorite),
         is_pinned: Boolean(note.is_pinned),
+        show_on_dashboard: Boolean(note.show_on_dashboard),
         is_protected: isProtected(note),
         protection_hint: note.protection_hint ?? null,
         note_type: note.note_type || 'note',
@@ -291,6 +292,7 @@ export const noteService = {
             folder_id,
             is_favorite,
             is_pinned,
+            show_on_dashboard,
             tags,
             is_protected,
             protection_password,
@@ -329,6 +331,12 @@ export const noteService = {
         if (is_pinned !== undefined) {
             updates.push('is_pinned = ?')
             const v = is_pinned
+            params.push(v === true || v === 'true' || v === 1 || v === '1' ? 1 : 0)
+        }
+
+        if (show_on_dashboard !== undefined) {
+            updates.push('show_on_dashboard = ?')
+            const v = show_on_dashboard
             params.push(v === true || v === 'true' || v === 1 || v === '1' ? 1 : 0)
         }
 

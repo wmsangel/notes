@@ -106,7 +106,18 @@
                 @toggle="toggleItem"
                 @update="updateItem"
                 @delete="deleteItem"
-            />
+            >
+              <template #append-actions>
+                <button
+                    class="btn btn-icon-sm btn-ghost link-note-btn"
+                    @click.stop="openLinkNoteModal(item.id)"
+                    title="Привязать заметку"
+                    aria-label="Привязать заметку"
+                >
+                  <Link2 :size="16" />
+                </button>
+              </template>
+            </TodoItem>
 
             <!-- Привязанные заметки -->
             <div class="linked-notes" v-if="itemLinks[item.id]?.length">
@@ -126,15 +137,6 @@
                 </router-link>
               </div>
             </div>
-
-            <!-- Кнопка добавления связи -->
-            <button
-                class="btn btn-sm btn-ghost link-note-btn"
-                @click="openLinkNoteModal(item.id)"
-            >
-              <Link2 :size="14" />
-              Привязать заметку
-            </button>
           </div>
         </div>
       </div>
@@ -574,8 +576,10 @@ const getTagColor = (tag) => {
 }
 
 .link-note-btn {
-  margin: 8px 20px 12px;
-  width: calc(100% - 40px);
+  color: var(--text-muted);
+}
+.link-note-btn:hover {
+  color: var(--primary);
 }
 
 .empty-state {

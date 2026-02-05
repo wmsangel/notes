@@ -18,6 +18,10 @@
         <div class="item-description" v-if="item.description">
           {{ item.description }}
         </div>
+        <div class="item-due" v-if="item.due_date">
+          <Calendar :size="12" />
+          {{ formatDueDate(item.due_date) }}
+        </div>
       </div>
 
       <div class="item-edit" v-else>
@@ -33,6 +37,13 @@
       </div>
 
       <div class="item-actions">
+        <input
+            type="date"
+            class="due-date-input"
+            :value="dueDateInputValue"
+            @change="onDueDateChange"
+            title="Срок выполнения"
+        />
         <select
             class="priority-select"
             :class="`priority-${item.priority}`"
@@ -60,14 +71,16 @@
         >
           <Trash2 :size="14" />
         </button>
+
+        <slot name="append-actions" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
-import { CheckCircle, Circle, Edit2, Trash2 } from 'lucide-vue-next'
+import { ref, computed, nextTick } from 'vue'
+import { CheckCircle, Circle, Edit2, Trash2, Calendar } from 'lucide-vue-next'
 
 const props = defineProps({
   item: {
@@ -140,6 +153,25 @@ const cancelEdit = () => {
 
 const updatePriority = () => {
   emit('update', props.item.id, { priority: localPriority.value })
+}
+
+function formatDueDate(val) {
+  if (!val) return ''
+  const d = new Date(val)
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })
+}
+
+const dueDateInputValue = computed(() => {
+  const val = props.item.due_date
+  if (!val) return ''
+  const d = new Date(val)
+  return d.toISOString().slice(0, 10)
+})
+
+const onDueDateChange = (e) => {
+  const v = e.target?.value
+  const newDate = v ? `${v}T12:00:00.000Z` : null
+  emit('update', props.item.id, { due_date: newDate })
 }
 </script>
 
@@ -221,6 +253,29 @@ const updatePriority = () => {
   color: var(--text-secondary);
   margin-top: 4px;
   line-height: 1.5;
+}
+
+.item-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+}
+
+.due-date-input {
+  padding: 4px 8px;
+  font-size: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.due-date-input:hover {
+  border-color: var(--primary);
 }
 
 .item-edit {
