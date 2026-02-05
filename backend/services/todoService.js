@@ -69,6 +69,53 @@ export const todoService = {
         }
     },
 
+    async getOverview() {
+        const [rows] = await db.query(
+            `SELECT 
+                tl.id          AS list_id,
+                tl.title       AS list_title,
+                tl.folder_id   AS list_folder_id,
+                tl.color       AS list_color,
+                f.name         AS folder_name,
+                ti.id          AS item_id,
+                ti.title       AS item_title,
+                ti.is_completed,
+                ti.priority,
+                ti.due_date
+             FROM todo_lists tl
+             LEFT JOIN todo_items ti ON tl.id = ti.list_id
+             LEFT JOIN folders f ON tl.folder_id = f.id
+             ORDER BY tl.title ASC, ti.position ASC, ti.created_at ASC`
+        )
+
+        const byList = new Map()
+        for (const row of rows) {
+            let list = byList.get(row.list_id)
+            if (!list) {
+                list = {
+                    id: row.list_id,
+                    title: row.list_title,
+                    folder_id: row.list_folder_id,
+                    folder_name: row.folder_name || null,
+                    color: row.list_color,
+                    items: []
+                }
+                byList.set(row.list_id, list)
+            }
+            if (row.item_id != null) {
+                list.items.push({
+                    id: row.item_id,
+                    title: row.item_title,
+                    is_completed: !!row.is_completed,
+                    priority: row.priority,
+                    due_date: row.due_date
+                })
+            }
+        }
+
+        return Array.from(byList.values())
+    },
+
     async createList(data) {
         const { title, description, folder_id } = data
         const folderId = folder_id === '' || folder_id === 'null' || folder_id == null

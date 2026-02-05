@@ -5,10 +5,15 @@
       <div class="page-header">
         <h1 class="page-title">Задачи</h1>
         <p class="page-subtitle">Списки задач и проекты</p>
-        <button class="btn btn-primary" @click="openCreateModal">
-          <Plus :size="20" />
-          Создать список
-        </button>
+        <div class="header-actions">
+          <router-link to="/todos-overview" class="btn btn-secondary">
+            Все задачи
+          </router-link>
+          <button class="btn btn-primary" @click="openCreateModal">
+            <Plus :size="20" />
+            Создать список
+          </button>
+        </div>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -130,6 +135,12 @@ const handleEditList = (list) => {
   color: var(--text-secondary);
   margin: 0;
   flex: 1;
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }
 
 .page-header .btn {

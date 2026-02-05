@@ -12,6 +12,16 @@ export const todoController = {
         }
     },
 
+    async getOverview(req, res) {
+        try {
+            const data = await todoService.getOverview()
+            res.json(data)
+        } catch (error) {
+            console.error('Error fetching todo overview:', error)
+            res.status(500).json({ error: error.message })
+        }
+    },
+
     async getListById(req, res) {
         try {
             const list = await todoService.getListById(req.params.id)

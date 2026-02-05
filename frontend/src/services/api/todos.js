@@ -46,6 +46,11 @@ export const deleteItem = async (id) => {
     return response.data
 }
 
+export const getOverview = async () => {
+    const response = await api.get('/todos/overview')
+    return response.data
+}
+
 // Связи с заметками
 export const linkNote = async (todoItemId, noteId) => {
     const response = await api.post('/todos/items/link-note', { todoItemId, noteId })

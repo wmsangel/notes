@@ -6,6 +6,7 @@ const router = express.Router()
 
 // TODO Lists
 router.get('/lists', todoController.getAllLists)
+router.get('/overview', todoController.getOverview)
 router.get('/lists/:id', todoController.getListById)
 router.post('/lists', todoController.createList)
 router.put('/lists/:id', todoController.updateList)

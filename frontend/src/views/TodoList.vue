@@ -167,7 +167,15 @@
               @click="linkNote(note.id)"
           >
             <FileText :size="16" />
-            <span>{{ note.title }}</span>
+            <div class="note-item-modal-text">
+              <span class="note-item-modal-title">{{ note.title }}</span>
+              <span
+                  v-if="note.folder_id"
+                  class="note-item-modal-folder"
+              >
+                {{ getNoteFolderPath(note.folder_id) }}
+              </span>
+            </div>
           </div>
 
           <div v-if="!filteredNotes.length" class="no-notes">
@@ -190,6 +198,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useTodosStore } from '@/stores/todos'
 import { useNotesStore } from '@/stores/notes'
+import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
@@ -211,6 +220,7 @@ const route = useRoute()
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
 const uiStore = useUIStore()
+const foldersStore = useFoldersStore()
 
 const loading = ref(false)
 const adding = ref(false)
@@ -246,6 +256,13 @@ const filteredNotes = computed(() => {
   )
 })
 
+const getNoteFolderPath = (folderId) => {
+  if (!folderId) return ''
+  const path = foldersStore.getFolderPath(folderId)
+  if (!path.length) return ''
+  return path.map(f => f.name).join(' / ')
+}
+
 onMounted(async () => {
   loading.value = true
 
@@ -262,6 +279,10 @@ onMounted(async () => {
     // Загружаем все заметки для модалки
     await notesStore.fetchNotes()
     availableNotes.value = notesStore.notes
+
+    if (!foldersStore.folders.length) {
+      await foldersStore.fetchFolders()
+    }
   } catch (error) {
     uiStore.showError('Ошибка загрузки списка')
   } finally {
@@ -648,9 +669,9 @@ const getTagColor = (tag) => {
 
 .note-item-modal {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -660,6 +681,22 @@ const getTagColor = (tag) => {
 .note-item-modal:hover {
   background: var(--bg-tertiary);
   color: var(--primary);
+}
+
+.note-item-modal-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.note-item-modal-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.note-item-modal-folder {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .no-notes {

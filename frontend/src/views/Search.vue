@@ -60,7 +60,15 @@
               class="result-item card"
           >
             <div class="result-header">
-              <h3 class="result-title">{{ note.title }}</h3>
+              <div class="result-title-block">
+                <h3 class="result-title">{{ note.title }}</h3>
+                <div
+                    v-if="note.folder_id"
+                    class="result-folder"
+                >
+                  {{ getFolderPathLabel(note.folder_id) }}
+                </div>
+              </div>
               <Star
                   v-if="note.is_favorite"
                   :size="16"
@@ -91,10 +99,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useNotesStore } from '@/stores/notes'
+import { useFoldersStore } from '@/stores/folders'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import { Search, X, FileX, Star, Clock, ChevronRight } from 'lucide-vue-next'
 
 const notesStore = useNotesStore()
+const foldersStore = useFoldersStore()
 
 const searchInput = ref(null)
 const query = ref('')
@@ -120,6 +130,9 @@ const handleSearch = () => {
   searchTimeout = setTimeout(async () => {
     try {
       results.value = await notesStore.searchNotes(query.value)
+    if (!foldersStore.folders.length) {
+      await foldersStore.fetchFolders()
+    }
     } catch (error) {
       console.error('Search error:', error)
       results.value = []
@@ -140,6 +153,13 @@ const getContentPreview = (note) => {
 
   const text = note.content.replace(/<[^>]*>/g, '').trim()
   return text.length > 200 ? text.substring(0, 200) + '...' : text
+}
+
+const getFolderPathLabel = (folderId) => {
+  if (!folderId) return ''
+  const path = foldersStore.getFolderPath(folderId)
+  if (!path.length) return ''
+  return path.map(f => f.name).join(' / ')
 }
 
 const formatDate = (date) => {
@@ -314,12 +334,27 @@ const formatDate = (date) => {
   gap: 12px;
 }
 
+.result-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .result-title {
   font-size: 18px;
   font-weight: 600;
   margin: 0;
   flex: 1;
   line-height: 1.4;
+}
+
+.result-folder {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .favorite-icon {

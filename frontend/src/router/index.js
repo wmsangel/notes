@@ -39,6 +39,12 @@ const routes = [
         meta: { title: 'Задачи' }
     },
     {
+        path: '/todos-overview',
+        name: 'TodosOverview',
+        component: () => import('@/views/TodosOverview.vue'),
+        meta: { title: 'Все задачи' }
+    },
+    {
         path: '/todos/:id',
         name: 'TodoList',
         component: () => import('@/views/TodoList.vue'),
