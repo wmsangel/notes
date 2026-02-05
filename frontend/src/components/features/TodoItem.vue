@@ -170,8 +170,9 @@ const dueDateInputValue = computed(() => {
 
 const onDueDateChange = (e) => {
   const v = e.target?.value
-  const newDate = v ? `${v}T12:00:00.000Z` : null
-  emit('update', props.item.id, { due_date: newDate })
+  // MySQL DATETIME надёжно принимает 'YYYY-MM-DD' / 'YYYY-MM-DD HH:MM:SS'
+  // Не отправляем ISO с 'T' и 'Z', чтобы не ловить 500 на бэкенде.
+  emit('update', props.item.id, { due_date: v || null })
 }
 </script>
 

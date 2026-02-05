@@ -57,35 +57,35 @@
     --safe-left: env(safe-area-inset-left, 0);
 }
 
-/* —— Тёмная тема: глубокий фон, выраженные слои —— */
+/* —— Тёмная тема: нейтральный charcoal + красный акцент (как в референсе) —— */
 [data-theme="dark"] {
-    --primary: #818cf8;
-    --primary-hover: #6366f1;
-    --primary-soft: rgba(129, 140, 248, 0.12);
-    --primary-soft-hover: rgba(129, 140, 248, 0.2);
-    --accent: #a78bfa;
-    --secondary: #a78bfa; /* alias for accent */
-    --success: #2dd4bf;
-    --warning: #fbbf24;
-    --danger: #f87171;
+    --primary: #e53935;
+    --primary-hover: #c62828;
+    --primary-soft: rgba(229, 57, 53, 0.12);
+    --primary-soft-hover: rgba(229, 57, 53, 0.18);
+    --accent: #ef5350;
+    --secondary: #ef5350;
+    --success: #66bb6a;
+    --warning: #ffa726;
+    --danger: #ef5350;
 
-    --bg: #0e1116;
-    --bg-page: #0a0d10;
-    --surface: #14181e;
-    --surface-raised: #1a1f26;
-    --surface-overlay: #1e242c;
+    --bg: #1a1a1a;
+    --bg-page: #1a1a1a;
+    --surface: #242424;
+    --surface-raised: #2d2d2d;
+    --surface-overlay: #333333;
 
-    --text: #f1f5f9;
-    --text-secondary: #94a3b8;
-    --text-tertiary: #64748b;
+    --text: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-tertiary: #808080;
 
-    --border: #2a3140;
-    --border-subtle: #1e242c;
+    --border: #333333;
+    --border-subtle: #2d2d2d;
 
-    --shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.3);
-    --shadow: 0 2px 12px rgb(0 0 0 / 0.35);
-    --shadow-md: 0 4px 20px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 8px 32px rgb(0 0 0 / 0.5);
+    --shadow-subtle: 0 1px 2px rgb(0 0 0 / 0.4);
+    --shadow: 0 2px 8px rgb(0 0 0 / 0.4);
+    --shadow-md: 0 4px 16px rgb(0 0 0 / 0.45);
+    --shadow-lg: 0 8px 24px rgb(0 0 0 / 0.5);
     --bg-secondary: var(--bg-page);
     --bg-tertiary: var(--surface-raised);
     --border-light: var(--border-subtle);

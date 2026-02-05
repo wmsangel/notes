@@ -104,23 +104,33 @@
     </div>
 
     <div class="sidebar-section sidebar-tags" v-if="!uiStore.sidebarCollapsed">
-      <div class="section-header">
+      <button
+          type="button"
+          class="section-toggle"
+          @click="tagsExpanded = !tagsExpanded"
+          :title="tagsExpanded ? 'Свернуть' : 'Развернуть'"
+      >
+        <ChevronDown :size="14" class="chevron" :class="{ 'chevron--collapsed': !tagsExpanded }" />
         <span>ТЕГИ</span>
-      </div>
-      <div class="tags-list" v-if="allTags.length">
-        <router-link
-            v-for="tag in allTags"
-            :key="tag"
-            :to="{ path: '/notes', query: { tag } }"
-            class="sidebar-tag-link"
-            :class="{ active: route.query.tag === tag }"
-        >
-          <Tag :size="14" />
-          <span class="sidebar-tag-name">{{ tag }}</span>
-        </router-link>
-      </div>
-      <div class="tags-empty" v-else>
-        <span>Нет тегов</span>
+        <span class="section-count" v-if="allTags.length">{{ allTags.length }}</span>
+      </button>
+
+      <div v-show="tagsExpanded">
+        <div class="tags-list" v-if="allTags.length">
+          <router-link
+              v-for="tag in allTags"
+              :key="tag"
+              :to="{ path: '/notes', query: { tag } }"
+              class="sidebar-tag-link"
+              :class="{ active: route.query.tag === tag }"
+          >
+            <Tag :size="14" />
+            <span class="sidebar-tag-name">{{ tag }}</span>
+          </router-link>
+        </div>
+        <div class="tags-empty" v-else>
+          <span>Нет тегов</span>
+        </div>
       </div>
     </div>
 
@@ -191,6 +201,7 @@ import {
 
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned-expanded'
 const SIDEBAR_FAVORITES_KEY = 'sidebar-favorites-expanded'
+const SIDEBAR_TAGS_KEY = 'sidebar-tags-expanded'
 
 const pinnedExpanded = ref(
   (() => {
@@ -213,11 +224,25 @@ const favoritesExpanded = ref(
   })()
 )
 
+const tagsExpanded = ref(
+  (() => {
+    try {
+      const v = localStorage.getItem(SIDEBAR_TAGS_KEY)
+      return v !== 'false'
+    } catch {
+      return true
+    }
+  })()
+)
+
 watch(pinnedExpanded, (v) => {
   try { localStorage.setItem(SIDEBAR_PINNED_KEY, String(v)) } catch {}
 })
 watch(favoritesExpanded, (v) => {
   try { localStorage.setItem(SIDEBAR_FAVORITES_KEY, String(v)) } catch {}
+})
+watch(tagsExpanded, (v) => {
+  try { localStorage.setItem(SIDEBAR_TAGS_KEY, String(v)) } catch {}
 })
 
 const router = useRouter()
@@ -311,7 +336,7 @@ const handleFolderSelect = (folderId) => {
 }
 
 .sidebar-nav {
-  padding: 10px 8px;
+  padding: 8px 8px 6px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -322,8 +347,8 @@ const handleFolderSelect = (folderId) => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 12px;
-  height: var(--nav-item-h);
+  padding: 0 10px;
+  height: 38px;
   border-radius: var(--radius-sm);
   text-decoration: none;
   color: var(--text-secondary);
@@ -347,11 +372,11 @@ const handleFolderSelect = (folderId) => {
 .nav-item .count {
   margin-left: auto;
   font-size: 11px;
-  padding: 3px 8px;
+  padding: 2px 8px;
   background: var(--surface-raised);
   border-radius: 999px;
   color: var(--text-tertiary);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .nav-item.active .count {
@@ -366,7 +391,7 @@ const handleFolderSelect = (folderId) => {
 
 .sidebar-section {
   overflow-y: auto;
-  padding: 8px 8px 12px;
+  padding: 6px 8px 10px;
 }
 
 .sidebar-section.sidebar-notes-list {
@@ -515,12 +540,46 @@ const handleFolderSelect = (folderId) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 4px 6px 8px;
+  padding: 6px 6px;
   font-size: 10px;
   font-weight: 700;
   color: var(--text-tertiary);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.section-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: var(--transition);
+}
+
+.section-toggle:hover {
+  color: var(--text-secondary);
+}
+
+.section-count {
+  margin-left: auto;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .folders-tree {

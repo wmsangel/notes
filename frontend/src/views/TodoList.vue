@@ -392,7 +392,7 @@ const getTagColor = (tag) => {
 
 <style scoped>
 .todo-list-page {
-  max-width: 800px;
+  max-width: 1100px;
   margin: 0 auto;
 }
 
@@ -400,7 +400,7 @@ const getTagColor = (tag) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24px;
+  margin-bottom: 14px;
 }
 
 .back-btn {
@@ -418,19 +418,19 @@ const getTagColor = (tag) => {
   background: var(--bg);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border-light);
-  padding: 32px;
-  margin-bottom: 24px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
 }
 
 .list-header-row {
   display: flex;
   align-items: flex-start;
   gap: 16px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .list-title {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 700;
   margin: 0;
   line-height: 1.2;
@@ -444,41 +444,42 @@ const getTagColor = (tag) => {
 }
 
 .tag-badge {
-  padding: 4px 12px;
+  padding: 3px 10px;
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
 
 .list-description {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text-secondary);
-  margin: 0 0 20px 0;
+  margin: 0 0 12px 0;
   line-height: 1.6;
 }
 
 .list-stats {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .stat-badge {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 6px;
+  padding: 6px 10px;
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--text);
 }
 
 .add-item-section {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .add-item-section .input {

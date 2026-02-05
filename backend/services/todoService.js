@@ -1,6 +1,26 @@
 // backend/services/todoService.js
 import db from '../config/database.js'
 
+function normalizeDueDate(value) {
+    if (value == null || value === '') return null
+    if (value instanceof Date) {
+        const pad = (n) => String(n).padStart(2, '0')
+        return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())} ${pad(value.getHours())}:${pad(value.getMinutes())}:${pad(value.getSeconds())}`
+    }
+    if (typeof value === 'string') {
+        const s = value.trim()
+        // 'YYYY-MM-DD' → оставляем как есть (MySQL примет для DATETIME)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s
+        // ISO → конвертим в 'YYYY-MM-DD HH:MM:SS'
+        if (s.includes('T')) {
+            const d = new Date(s)
+            if (!isNaN(d.getTime())) return normalizeDueDate(d)
+        }
+        return s
+    }
+    return value
+}
+
 export const todoService = {
     async getAllLists() {
         const [lists] = await db.query(`
@@ -104,7 +124,7 @@ export const todoService = {
         const [result] = await db.query(
             `INSERT INTO todo_items (list_id, title, description, priority, due_date) 
        VALUES (?, ?, ?, ?, ?)`,
-            [list_id, title, description || null, priority || 'medium', due_date || null]
+            [list_id, title, description || null, priority || 'medium', normalizeDueDate(due_date)]
         )
 
         const [items] = await db.query(
@@ -132,7 +152,7 @@ export const todoService = {
         }
         if (data.due_date !== undefined) {
             updates.push('due_date = ?')
-            values.push(data.due_date ?? null)
+            values.push(normalizeDueDate(data.due_date))
         }
         if (updates.length === 0) {
             const [items] = await db.query('SELECT * FROM todo_items WHERE id = ?', [id])

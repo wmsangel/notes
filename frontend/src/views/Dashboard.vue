@@ -11,7 +11,7 @@
         <!-- Задачи на сегодня -->
         <div
             v-if="(stats.todos?.tasks_due_today || []).length > 0"
-            class="dashboard-section card tasks-today"
+            class="dashboard-section card tasks-today wide"
         >
           <div class="section-header">
             <h2 class="section-title">
@@ -140,7 +140,7 @@
         </div>
 
         <!-- TODO списки -->
-        <div v-if="(stats.todos?.lists || []).length > 0" class="dashboard-section card">
+        <div v-if="(stats.todos?.lists || []).length > 0" class="dashboard-section card wide">
           <div class="section-header">
             <h2 class="section-title">
               <ListTodo :size="20" />
@@ -316,6 +316,31 @@ const createFolder = () => {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 16px;
+}
+
+.dashboard-section.wide {
+  grid-column: 1 / -1;
+}
+
+.dashboard-section.wide .section-header {
+  padding: 14px 18px;
+}
+
+.dashboard-section.wide .notes-list {
+  padding: 10px;
+}
+
+.dashboard-section.wide .note-item {
+  padding: 14px 14px;
+}
+
+.dashboard-section.wide .note-title {
+  font-size: 14px;
+}
+
+.dashboard-section.wide .note-folder,
+.dashboard-section.wide .note-meta {
+  font-size: 12px;
 }
 
 .dashboard-section {
