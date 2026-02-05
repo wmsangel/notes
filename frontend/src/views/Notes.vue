@@ -500,7 +500,7 @@ const getContentPreview = (note) => {
 .notes-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .drag-hint {
@@ -509,10 +509,11 @@ const getContentPreview = (note) => {
 }
 
 .note-list-item {
-  padding: 14px 16px 14px 54px;
+  padding: 10px 16px 10px 50px;
   cursor: pointer;
   transition: var(--transition);
   position: relative;
+  min-height: 0;
 }
 
 .note-card-wrap {
@@ -523,8 +524,8 @@ const getContentPreview = (note) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border: 1px solid var(--border-subtle);
   background: var(--surface-overlay);
   color: var(--text-tertiary);
@@ -541,7 +542,7 @@ const getContentPreview = (note) => {
 .drag-handle--row {
   position: absolute;
   left: 12px;
-  top: 10px;
+  top: 12px;
 }
 
 .drag-handle--card {
@@ -554,7 +555,7 @@ const getContentPreview = (note) => {
 .list-item-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
 }
 
 .list-item-header {
@@ -565,7 +566,7 @@ const getContentPreview = (note) => {
 }
 
 .list-item-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--text);
   margin: 0;
@@ -597,7 +598,7 @@ const getContentPreview = (note) => {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  padding-top: 8px;
+  padding-top: 12px;
   border-top: 1px solid var(--border-light);
 }
 
