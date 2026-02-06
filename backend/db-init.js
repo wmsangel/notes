@@ -21,6 +21,10 @@ const MIGRATIONS = [
   'migrate-todo-note-links.sql',
   'migrate-note-attachments.sql',
   'migrate-notes-add-show-on-dashboard.sql',
+  'migrate-notes-add-color.sql',
+  'migrate-todo-lists-add-note-link.sql',
+  'migrate-calendar-events.sql',
+  'migrate-dashboard-links.sql',
 ];
 
 const IGNORE_CODES = new Set(['ER_DUP_FIELDNAME', 'ER_DUP_KEYNAME', 'ER_DUP_INDEX']);
