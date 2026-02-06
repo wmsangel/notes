@@ -45,6 +45,12 @@ const routes = [
         meta: { title: 'Все задачи' }
     },
     {
+        path: '/calendar',
+        name: 'Calendar',
+        component: () => import('@/views/Calendar.vue'),
+        meta: { title: 'Календарь' }
+    },
+    {
         path: '/todos/:id',
         name: 'TodoList',
         component: () => import('@/views/TodoList.vue'),

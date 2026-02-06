@@ -1,0 +1,8 @@
+-- Dashboard project links
+CREATE TABLE IF NOT EXISTS dashboard_links (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    url VARCHAR(1000) NOT NULL,
+    icon_url VARCHAR(1000) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

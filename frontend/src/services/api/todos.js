@@ -46,6 +46,11 @@ export const deleteItem = async (id) => {
     return response.data
 }
 
+export const reorderItems = async (list_id, order) => {
+    const response = await api.post('/todos/items/reorder', { list_id, order })
+    return response.data
+}
+
 export const getOverview = async () => {
     const response = await api.get('/todos/overview')
     return response.data
@@ -64,5 +69,11 @@ export const unlinkNote = async (todoItemId, noteId) => {
 
 export const getLinkedNotes = async (todoItemId) => {
     const response = await api.get(`/todos/items/${todoItemId}/notes`)
+    return response.data
+}
+
+// Link note to list (single note)
+export const linkNoteToList = async (listId, noteId) => {
+    const response = await api.post(`/todos/lists/${listId}/link-note`, { noteId })
     return response.data
 }

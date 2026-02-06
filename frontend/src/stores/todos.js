@@ -55,6 +55,10 @@ export const useTodosStore = defineStore('todos', () => {
         await todosApi.deleteItem(id)
     }
 
+    const reorderItems = async (listId, order) => {
+        return await todosApi.reorderItems(listId, order)
+    }
+
     // Связи с заметками
     const linkNoteToItem = async (todoItemId, noteId) => {
         return await todosApi.linkNote(todoItemId, noteId)
@@ -66,6 +70,10 @@ export const useTodosStore = defineStore('todos', () => {
 
     const getLinkedNotes = async (todoItemId) => {
         return await todosApi.getLinkedNotes(todoItemId)
+    }
+
+    const linkNoteToList = async (listId, noteId) => {
+        return await todosApi.linkNoteToList(listId, noteId)
     }
 
     return {
@@ -80,8 +88,10 @@ export const useTodosStore = defineStore('todos', () => {
         updateItem,
         toggleItem,
         deleteItem,
+        reorderItems,
         linkNoteToItem,
         unlinkNoteFromItem,
-        getLinkedNotes
+        getLinkedNotes,
+        linkNoteToList
     }
 })

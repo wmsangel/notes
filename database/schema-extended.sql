@@ -7,10 +7,18 @@ ADD COLUMN is_protected BOOLEAN DEFAULT FALSE AFTER tags,
 ADD COLUMN protection_password VARCHAR(255) NULL AFTER is_protected,
 ADD COLUMN protection_hint VARCHAR(500) NULL AFTER protection_password;
 
+-- Цветная метка заметки
+ALTER TABLE notes
+ADD COLUMN color VARCHAR(7) DEFAULT NULL AFTER is_pinned;
+
 -- Добавляем поля для меток/тегов в TODO листы
 ALTER TABLE todo_lists
 ADD COLUMN tags JSON AFTER description,
 ADD COLUMN color VARCHAR(7) DEFAULT '#6366f1' AFTER tags;
+
+-- Привязка заметки к списку задач (одна заметка)
+ALTER TABLE todo_lists
+ADD COLUMN note_id INT NULL AFTER description;
 
 -- Создаем таблицу связи TODO задач с заметками
 CREATE TABLE IF NOT EXISTS todo_note_links (

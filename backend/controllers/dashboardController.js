@@ -56,11 +56,51 @@ export const getStats = async (req, res) => {
     }
 };
 
+export const getLinks = async (req, res) => {
+    try {
+        const links = await dashboardService.getLinks();
+        res.json(links);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const createLink = async (req, res) => {
+    try {
+        const link = await dashboardService.createLink(req.body);
+        res.status(201).json(link);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const updateLink = async (req, res) => {
+    try {
+        const link = await dashboardService.updateLink(req.params.id, req.body);
+        res.json(link);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+export const deleteLink = async (req, res) => {
+    try {
+        await dashboardService.deleteLink(req.params.id);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
 export const dashboardController = {
     getWidgets,
     updateWidget,
     createWidget,
     deleteWidget,
     getRecentNotes,
-    getStats
+    getStats,
+    getLinks,
+    createLink,
+    updateLink,
+    deleteLink
 };

@@ -10,29 +10,38 @@
       <div class="dashboard-grid">
         <!-- Задачи на сегодня -->
         <div
-            v-if="(stats.todos?.tasks_due_today || []).length > 0"
-            class="dashboard-section card tasks-today wide"
+          v-if="(stats.todos?.tasks_due_today || []).length > 0"
+          class="dashboard-section card tasks-today wide"
         >
           <div class="section-header">
             <h2 class="section-title">
               <Calendar :size="20" />
               Задачи на сегодня
             </h2>
-            <router-link to="/todos" class="btn btn-sm btn-ghost">
+            <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
               Все задачи
               <ArrowRight :size="16" />
             </router-link>
           </div>
           <div class="notes-list">
             <router-link
-                v-for="task in stats.todos.tasks_due_today"
-                :key="task.id"
-                :to="`/todos/${task.list_id}`"
-                class="note-item task-item"
-                :class="{ completed: task.is_completed }"
+              v-for="task in stats.todos.tasks_due_today"
+              :key="task.id"
+              :to="`/todos/${task.list_id}`"
+              class="note-item task-item"
+              :class="{ completed: task.is_completed }"
             >
-              <CheckCircle v-if="task.is_completed" :size="18" class="task-check done" />
-              <Circle v-else :size="18" class="task-check" />
+              <button
+                class="task-toggle"
+                :class="{ done: task.is_completed }"
+                type="button"
+                @click.stop="toggleTask(task)"
+                :disabled="togglingTasks[task.id]"
+                title="Закрыть/открыть задачу"
+              >
+                <CheckCircle v-if="task.is_completed" :size="18" />
+                <Circle v-else :size="18" />
+              </button>
               <div class="note-info">
                 <div class="note-title">{{ task.title }}</div>
                 <div class="note-meta">
@@ -42,6 +51,39 @@
               </div>
               <ChevronRight :size="16" class="note-arrow" />
             </router-link>
+          </div>
+        </div>
+
+        <!-- Календарь (ближайшие 7 дней) -->
+        <div
+          v-if="(stats.calendar_upcoming || []).length > 0"
+          class="dashboard-section card wide"
+        >
+          <div class="section-header">
+            <h2 class="section-title">
+              <Calendar :size="20" />
+              Календарь (7 дней)
+            </h2>
+            <router-link to="/calendar" class="btn btn-sm btn-ghost">
+              Открыть
+              <ArrowRight :size="16" />
+            </router-link>
+          </div>
+          <div class="notes-list">
+            <div
+              v-for="event in stats.calendar_upcoming"
+              :key="`${event.source_event_id}-${event.start_at}`"
+              class="note-item calendar-item"
+              :class="{ today: event.is_today }"
+            >
+              <div class="note-info">
+                <div class="note-title">{{ event.title }}</div>
+                <div class="note-meta">
+                  {{ formatEventDate(event.start_at) }}
+                  <span v-if="event.is_today" class="today-badge">Сегодня</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -66,6 +108,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
+                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -94,6 +137,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
+                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -126,6 +170,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
+                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -153,45 +198,16 @@
           </div>
           <div class="notes-list">
             <router-link
-                v-for="list in stats.todos.lists"
-                :key="list.id"
-                :to="`/todos/${list.id}`"
-                class="note-item"
+              v-for="list in stats.todos.lists"
+              :key="list.id"
+              :to="`/todos/${list.id}`"
+              class="note-item"
             >
               <div class="note-info">
                 <div class="note-title">{{ list.title }}</div>
                 <div v-if="list.folder_name" class="note-folder">{{ list.folder_name }}</div>
-                <div class="note-meta">{{ list.completed }}/{{ list.total }}</div>
               </div>
               <ChevronRight :size="16" class="note-arrow" />
-            </router-link>
-          </div>
-        </div>
-
-        <!-- Быстрые действия -->
-        <div class="dashboard-section card quick-actions">
-          <div class="section-header">
-            <h2 class="section-title">
-              <Zap :size="20" />
-              Быстрые действия
-            </h2>
-          </div>
-          <div class="actions-grid">
-            <button class="action-btn" @click="createNote">
-              <Plus :size="20" />
-              <span>Новая заметка</span>
-            </button>
-            <button class="action-btn" @click="createTodo">
-              <CheckSquare :size="20" />
-              <span>TODO лист</span>
-            </button>
-            <button class="action-btn" @click="createFolder">
-              <FolderPlus :size="20" />
-              <span>Новая папка</span>
-            </button>
-            <router-link to="/search" class="action-btn">
-              <Search :size="20" />
-              <span>Поиск</span>
             </router-link>
           </div>
         </div>
@@ -215,18 +231,86 @@
           </router-link>
         </div>
       </div>
+
+      <!-- Быстрые ссылки на проекты -->
+      <div class="project-links card">
+        <div class="section-header">
+          <h2 class="section-title">
+            <Link2 :size="20" />
+            Проекты
+          </h2>
+        </div>
+
+        <div class="project-links-list" v-if="projectLinks.length">
+          <a
+            v-for="link in projectLinks"
+            :key="link.id"
+            class="project-link"
+            :href="link.url"
+            target="_blank"
+            rel="noopener"
+          >
+            <img
+              class="project-link-icon"
+              :src="link.icon_url || getFavicon(link.url)"
+              alt=""
+              loading="lazy"
+            />
+            <span class="project-link-title">{{ link.title }}</span>
+            <button
+              class="btn btn-icon-sm btn-ghost project-link-remove"
+              type="button"
+              @click.prevent="deleteLink(link.id)"
+              title="Удалить ссылку"
+            >
+              ×
+            </button>
+          </a>
+        </div>
+        <div v-else class="empty-state">
+          <p>Пока нет ссылок</p>
+        </div>
+
+        <div class="project-links-form">
+          <input
+            v-model="newLink.title"
+            class="input"
+            type="text"
+            placeholder="Название проекта"
+          />
+          <input
+            v-model="newLink.url"
+            class="input"
+            type="url"
+            placeholder="URL"
+          />
+          <div class="project-links-row">
+            <input
+              v-model="newLink.icon_url"
+              class="input"
+              type="url"
+              placeholder="Иконка (URL)"
+            />
+            <button class="btn btn-secondary" type="button" @click="useFavicon">
+              Favicon
+            </button>
+            <button class="btn btn-primary" type="button" @click="addLink" :disabled="addingLink">
+              Добавить
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </MainLayout>
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useDashboardStore } from '@/stores/dashboard'
-import { useNotesStore } from '@/stores/notes'
+import { useTodosStore } from '@/stores/todos'
 import { useUIStore } from '@/stores/ui'
+import { dashboardApi } from '@/services/api/dashboard'
 import MainLayout from '@/components/layout/MainLayout.vue'
-import FolderModal from '@/components/features/FolderModal.vue'
 import {
   FileText,
   Star,
@@ -236,22 +320,25 @@ import {
   Clock,
   ArrowRight,
   ChevronRight,
-  Zap,
-  Plus,
-  CheckSquare,
-  FolderPlus,
-  Search,
   Calendar,
   Pin,
-  ListTodo
+  ListTodo,
+  Link2
 } from 'lucide-vue-next'
 
-const router = useRouter()
 const dashboardStore = useDashboardStore()
-const notesStore = useNotesStore()
+const todosStore = useTodosStore()
 const uiStore = useUIStore()
 
 const stats = computed(() => dashboardStore.stats)
+const togglingTasks = reactive({})
+const projectLinks = ref([])
+const addingLink = ref(false)
+const newLink = reactive({
+  title: '',
+  url: '',
+  icon_url: ''
+})
 
 const rootFoldersForDashboard = computed(() => {
   const list = stats.value?.folders?.list || []
@@ -262,28 +349,78 @@ onMounted(() => {
   dashboardStore.fetchStats()
 })
 
-const createNote = async () => {
+watch(stats, (val) => {
+  projectLinks.value = Array.isArray(val?.project_links) ? [...val.project_links] : []
+}, { immediate: true })
+
+const toggleTask = async (task) => {
+  if (!task?.id || togglingTasks[task.id]) return
+  togglingTasks[task.id] = true
   try {
-    const note = await notesStore.createNote({
-      title: '',
-      content: '',
-      folder_id: null
-    })
-    router.push(`/notes/${note.id}`)
+    await todosStore.toggleItem(task.id)
+    await dashboardStore.fetchStats()
   } catch (error) {
-    uiStore.showError('Ошибка при создании заметки')
+    uiStore.showError('Ошибка обновления задачи')
+  } finally {
+    setTimeout(() => {
+      togglingTasks[task.id] = false
+    }, 300)
   }
 }
 
-const createTodo = () => {
-  router.push('/todos')
-  setTimeout(() => {
-    window.dispatchEvent(new CustomEvent('create-todo-list'))
-  }, 100)
+const getFavicon = (url) => {
+  try {
+    const u = new URL(url)
+    return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`
+  } catch {
+    return ''
+  }
 }
 
-const createFolder = () => {
-  uiStore.openModal(FolderModal)
+const useFavicon = () => {
+  if (!newLink.url) return
+  newLink.icon_url = getFavicon(newLink.url)
+}
+
+const addLink = async () => {
+  if (!newLink.title.trim() || !newLink.url.trim()) {
+    uiStore.showError('Введите название и URL')
+    return
+  }
+  addingLink.value = true
+  try {
+    const res = await dashboardApi.createLink({
+      title: newLink.title.trim(),
+      url: newLink.url.trim(),
+      icon_url: newLink.icon_url.trim() || null
+    })
+    projectLinks.value = [res.data, ...projectLinks.value]
+    newLink.title = ''
+    newLink.url = ''
+    newLink.icon_url = ''
+  } catch (error) {
+    uiStore.showError('Ошибка добавления ссылки')
+  } finally {
+    addingLink.value = false
+  }
+}
+
+const deleteLink = async (id) => {
+  if (!confirm('Удалить ссылку?')) return
+  try {
+    await dashboardApi.deleteLink(id)
+    projectLinks.value = projectLinks.value.filter(l => l.id !== id)
+  } catch (error) {
+    uiStore.showError('Ошибка удаления ссылки')
+  }
+}
+
+const formatEventDate = (val) => {
+  if (!val) return ''
+  const d = new Date(val)
+  const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+  return `${date} • ${time}`
 }
 </script>
 
@@ -420,13 +557,32 @@ const createFolder = () => {
   gap: 10px;
 }
 
-.task-item .task-check {
+.task-toggle {
   flex-shrink: 0;
-  margin-top: 2px;
+  width: 30px;
+  height: 30px;
+  border: none;
+  background: transparent;
   color: var(--text-tertiary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: var(--transition);
 }
 
-.task-item .task-check.done {
+.task-toggle:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--success);
+}
+
+.task-toggle:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.task-toggle.done {
   color: var(--success);
 }
 
@@ -539,6 +695,94 @@ const createFolder = () => {
   border-color: var(--primary);
   background: var(--primary-soft);
   color: var(--primary);
+}
+
+.calendar-item {
+  cursor: default;
+}
+
+.calendar-item.today {
+  background: var(--primary-soft);
+}
+
+.today-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.project-links {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+}
+
+.project-links-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.project-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--text);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+  transition: var(--transition);
+}
+
+.project-link:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--border);
+}
+
+.project-link-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.project-link-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.project-link-remove {
+  color: var(--text-tertiary);
+}
+
+.project-links-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.project-links-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+}
+
+@media (min-width: 769px) {
+  .folder-quick-access {
+    display: none;
+  }
 }
 
 @media (max-width: 768px) {

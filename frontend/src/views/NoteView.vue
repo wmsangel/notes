@@ -47,6 +47,28 @@
               {{ folder.name }}
             </option>
           </select>
+          <div class="note-color-picker">
+            <button
+                v-for="color in noteColors"
+                :key="color"
+                type="button"
+                class="note-color-dot"
+                :class="{ active: noteColor === color }"
+                :style="{ background: color }"
+                @click="setNoteColor(color)"
+                :title="`Цвет: ${color}`"
+                aria-label="Цвет заметки"
+            />
+            <button
+                v-if="noteColor"
+                type="button"
+                class="note-color-clear"
+                @click="setNoteColor(null)"
+                title="Сбросить цвет"
+            >
+              Сброс
+            </button>
+          </div>
           <div class="note-tags-row">
             <span
                 v-for="(tag, index) in noteTags"
@@ -277,9 +299,14 @@ const newPassword = ref('')
 const passwordHint = ref('')
 const titleInputRef = ref(null)
 const noteTags = ref([])
+const noteColor = ref(null)
 const newTag = ref('')
 const tagInputRef = ref(null)
 const pageViewMode = ref('view')
+const noteColors = [
+  '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
+  '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'
+]
 
 // Attachments
 const attachments = ref([])
@@ -365,6 +392,7 @@ async function loadNoteForId(noteId) {
 
 onMounted(async () => {
   await Promise.all([foldersStore.fetchFolders(), foldersStore.fetchFolderTree()])
+  window.addEventListener('keydown', handleKeydown)
   const noteId = route.params.id
   if (!noteId) return
   try {
@@ -392,12 +420,20 @@ const loadNoteContent = () => {
   noteContent.value = note.value.content ?? ''
   selectedFolder.value = note.value.folder_id
   noteTags.value = Array.isArray(note.value.tags) ? [...note.value.tags] : []
+  noteColor.value = note.value.color || null
 }
 
 const onTagInputKeydown = (e) => {
   if (e.key === 'Enter' || e.key === ',') {
     e.preventDefault()
     addTagFromInput()
+  }
+}
+
+const handleKeydown = (e) => {
+  if ((e.metaKey || e.ctrlKey) && String(e.key).toLowerCase() === 's') {
+    e.preventDefault()
+    saveNote(true)
   }
 }
 
@@ -514,6 +550,7 @@ onBeforeUnmount(() => {
   if (saveTimeout) {
     clearTimeout(saveTimeout)
   }
+  window.removeEventListener('keydown', handleKeydown)
 })
 
 onBeforeRouteLeave(async (to, from, next) => {
@@ -555,6 +592,17 @@ const handleFolderChange = () => {
   debouncedSave()
 }
 
+const setNoteColor = async (color) => {
+  noteColor.value = color
+  if (!note.value?.id) return
+  try {
+    await notesStore.updateNote(note.value.id, { color })
+    note.value.color = color
+  } catch (error) {
+    uiStore.showError('Ошибка сохранения цвета')
+  }
+}
+
 const debouncedSave = () => {
   clearTimeout(saveTimeout)
   saved.value = false
@@ -584,7 +632,8 @@ const saveNote = async (force = false) => {
     await notesStore.updateNote(note.value.id, {
       title: noteTitle.value,
       content: noteContent.value,
-      folder_id: selectedFolder.value
+      folder_id: selectedFolder.value,
+      color: noteColor.value
     })
 
     hasUnsavedChanges.value = false
@@ -707,6 +756,42 @@ const formatDate = (date) => {
 .header-meta .note-tags-row {
   flex: 1;
   min-width: 120px;
+}
+
+.note-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.note-color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.note-color-dot:hover {
+  transform: scale(1.08);
+}
+
+.note-color-dot.active {
+  border-color: var(--text);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.note-color-clear {
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .header-actions {

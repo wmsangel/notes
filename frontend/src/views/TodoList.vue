@@ -39,16 +39,21 @@
 
         <p class="list-description" v-if="list.description">{{ list.description }}</p>
 
-        <div class="list-stats">
-          <div class="stat-badge">
-            <CheckCircle :size="16" />
-            <span>{{ completedCount }} выполнено</span>
-          </div>
-          <div class="stat-badge">
-            <Circle :size="16" />
-            <span>{{ pendingCount }} в работе</span>
-          </div>
+        <div class="list-note-link">
+          <span class="list-note-label">Заметка:</span>
+          <router-link
+            v-if="list.linked_note"
+            :to="`/notes/${list.linked_note.id}`"
+            class="list-note-chip"
+            :style="list.linked_note.color ? { borderLeft: `4px solid ${list.linked_note.color}` } : null"
+          >
+            {{ list.linked_note.title || 'Без названия' }}
+          </router-link>
+          <span v-else class="list-note-empty">Нет привязанной заметки</span>
+          <button class="btn btn-sm btn-ghost" @click="openLinkListModal">Привязать</button>
+          <button v-if="list.linked_note" class="btn btn-sm btn-ghost" @click="unlinkNoteFromList">Убрать</button>
         </div>
+
       </div>
 
       <div class="add-item-section">
@@ -80,11 +85,11 @@
             Все ({{ items.length }})
           </button>
           <button
-              class="filter-tab"
-              :class="{ 'active': filter === 'pending' }"
-              @click="filter = 'pending'"
+            class="filter-tab"
+            :class="{ 'active': filter === 'pending' }"
+            @click="filter = 'pending'"
           >
-            В работе ({{ pendingCount }})
+            Активные ({{ pendingCount }})
           </button>
           <button
               class="filter-tab"
@@ -95,7 +100,65 @@
           </button>
         </div>
 
-        <div class="items-list">
+        <div class="items-list" v-if="filter === 'all'">
+          <draggable
+            v-model="items"
+            item-key="id"
+            handle=".drag-handle"
+            ghost-class="drag-ghost"
+            chosen-class="drag-chosen"
+            :delay="150"
+            :delayOnTouchOnly="true"
+            :touchStartThreshold="8"
+            @end="onReorderEnd"
+          >
+            <template #item="{ element: item }">
+              <div class="todo-item-wrapper">
+                <TodoItem
+                  :item="item"
+                  @toggle="toggleItem"
+                  @update="updateItem"
+                  @delete="deleteItem"
+                >
+                  <template #prepend>
+                    <button class="drag-handle" type="button" title="Перетащить" @click.stop>⠿</button>
+                  </template>
+                  <template #append-actions>
+                    <button
+                        class="btn btn-icon-sm btn-ghost link-note-btn"
+                        @click.stop="openLinkNoteModal(item.id)"
+                        title="Привязать заметку"
+                        aria-label="Привязать заметку"
+                    >
+                      <Link2 :size="16" />
+                    </button>
+                  </template>
+                </TodoItem>
+
+                <!-- Привязанные заметки -->
+                <div class="linked-notes" v-if="itemLinks[item.id]?.length">
+                  <div class="linked-notes-header">
+                    <FileText :size="14" />
+                    <span>Связанные заметки:</span>
+                  </div>
+                  <div class="linked-notes-list">
+                    <router-link
+                        v-for="note in itemLinks[item.id]"
+                        :key="note.id"
+                        :to="`/notes/${note.id}`"
+                        class="linked-note"
+                    >
+                      <FileText :size="14" />
+                      {{ note.title }}
+                    </router-link>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </draggable>
+        </div>
+
+        <div class="items-list" v-else>
           <div
               v-for="item in filteredItems"
               :key="item.id"
@@ -190,6 +253,50 @@
         </div>
       </div>
     </div>
+
+    <!-- Модалка привязки заметки к списку -->
+    <div class="link-modal" v-if="showListLinkModal" @click.self="showListLinkModal = false">
+      <div class="link-dialog card">
+        <h3>Привязать заметку к списку</h3>
+
+        <input
+            type="text"
+            class="input"
+            v-model="listNoteSearchQuery"
+            placeholder="Поиск заметок..."
+        />
+
+        <div class="notes-list-modal">
+          <div
+              v-for="note in filteredListNotes"
+              :key="note.id"
+              class="note-item-modal"
+              @click="linkNoteToList(note.id)"
+          >
+            <FileText :size="16" />
+            <div class="note-item-modal-text">
+              <span class="note-item-modal-title">{{ note.title }}</span>
+              <span
+                  v-if="note.folder_id"
+                  class="note-item-modal-folder"
+              >
+                {{ getNoteFolderPath(note.folder_id) }}
+              </span>
+            </div>
+          </div>
+
+          <div v-if="!filteredListNotes.length" class="no-notes">
+            Заметки не найдены
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" @click="showListLinkModal = false">
+            Отмена
+          </button>
+        </div>
+      </div>
+    </div>
   </MainLayout>
 </template>
 
@@ -203,6 +310,7 @@ import { useUIStore } from '@/stores/ui'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
 import TodoListModal from '@/components/features/TodoListModal.vue'
+import draggable from 'vuedraggable'
 import {
   ArrowLeft,
   Edit2,
@@ -234,6 +342,8 @@ const showLinkModal = ref(false)
 const selectedItemId = ref(null)
 const noteSearchQuery = ref('')
 const availableNotes = ref([])
+const showListLinkModal = ref(false)
+const listNoteSearchQuery = ref('')
 
 const completedCount = computed(() => items.value.filter(i => i.is_completed).length)
 const pendingCount = computed(() => items.value.filter(i => !i.is_completed).length)
@@ -254,6 +364,12 @@ const filteredNotes = computed(() => {
   return availableNotes.value.filter(note =>
       note.title.toLowerCase().includes(query)
   )
+})
+
+const filteredListNotes = computed(() => {
+  if (!listNoteSearchQuery.value) return availableNotes.value
+  const query = listNoteSearchQuery.value.toLowerCase()
+  return availableNotes.value.filter(note => note.title.toLowerCase().includes(query))
 })
 
 const getNoteFolderPath = (folderId) => {
@@ -314,6 +430,7 @@ const addItem = async () => {
     })
     items.value.push(item)
     newItemInput.value?.focus()
+    await onReorderEnd()
   } catch (error) {
     newItemTitle.value = title
     uiStore.showError('Ошибка добавления задачи')
@@ -329,6 +446,7 @@ const toggleItem = async (itemId) => {
     if (index !== -1) {
       items.value[index] = updated
     }
+    await onReorderEnd()
   } catch (error) {
     uiStore.showError('Ошибка обновления задачи')
   }
@@ -353,6 +471,7 @@ const deleteItem = async (itemId) => {
     await todosStore.deleteItem(itemId)
     items.value = items.value.filter(i => i.id !== itemId)
     uiStore.showSuccess('Задача удалена')
+    await onReorderEnd()
   } catch (error) {
     uiStore.showError('Ошибка удаления задачи')
   }
@@ -364,6 +483,11 @@ const openLinkNoteModal = (itemId) => {
   noteSearchQuery.value = ''
 }
 
+const openLinkListModal = () => {
+  showListLinkModal.value = true
+  listNoteSearchQuery.value = ''
+}
+
 const linkNote = async (noteId) => {
   try {
     await todosStore.linkNoteToItem(selectedItemId.value, noteId)
@@ -372,6 +496,25 @@ const linkNote = async (noteId) => {
     showLinkModal.value = false
   } catch (error) {
     uiStore.showError('Ошибка привязки заметки')
+  }
+}
+
+const linkNoteToList = async (noteId) => {
+  try {
+    const updated = await todosStore.linkNoteToList(list.value.id, noteId)
+    list.value = updated
+    showListLinkModal.value = false
+  } catch (error) {
+    uiStore.showError('Ошибка привязки заметки')
+  }
+}
+
+const unlinkNoteFromList = async () => {
+  try {
+    const updated = await todosStore.linkNoteToList(list.value.id, null)
+    list.value = updated
+  } catch (error) {
+    uiStore.showError('Ошибка обновления списка')
   }
 }
 
@@ -398,6 +541,15 @@ const deleteList = async () => {
 
 const goBack = () => {
   router.push('/todos')
+}
+
+const onReorderEnd = async () => {
+  if (!items.value.length) return
+  try {
+    await todosStore.reorderItems(list.value.id, items.value.map(i => i.id))
+  } catch (e) {
+    uiStore.showError('Не удалось сохранить порядок')
+  }
 }
 
 const getTagColor = (tag) => {
@@ -479,22 +631,37 @@ const getTagColor = (tag) => {
   line-height: 1.6;
 }
 
-.list-stats {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.stat-badge {
+.list-note-link {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  background: var(--bg-secondary);
-  border-radius: var(--radius-sm);
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.list-note-label {
   font-size: 12px;
-  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.list-note-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
   color: var(--text);
+  text-decoration: none;
+  font-size: 12px;
+  border: 1px solid var(--border-subtle);
+}
+
+.list-note-empty {
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .add-item-section {
@@ -598,10 +765,18 @@ const getTagColor = (tag) => {
 }
 
 .link-note-btn {
-  color: var(--text-muted);
+  color: var(--text-tertiary);
 }
 .link-note-btn:hover {
   color: var(--primary);
+}
+
+.drag-ghost {
+  opacity: 0.6;
+}
+
+.drag-chosen {
+  opacity: 0.9;
 }
 
 .empty-state {

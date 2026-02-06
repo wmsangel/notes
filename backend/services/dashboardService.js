@@ -1,5 +1,6 @@
 // backend/services/dashboardService.js
 import pool from '../config/database.js';
+import { calendarService } from './calendarService.js';
 
 class DashboardService {
     async getWidgets() {
@@ -65,22 +66,28 @@ class DashboardService {
     }
 
     async getStats() {
+        await pool.query(
+            `DELETE FROM todo_items
+       WHERE is_completed = 1
+         AND completed_at IS NOT NULL
+         AND completed_at < DATE_SUB(NOW(), INTERVAL 100 DAY)`
+        );
         const [notesCount] = await pool.query('SELECT COUNT(*) as count FROM notes');
         const [foldersCount] = await pool.query('SELECT COUNT(*) as count FROM folders');
         const [todosCount] = await pool.query(
             'SELECT COUNT(*) as total, SUM(is_completed) as completed FROM todo_items'
         );
         const [recentNotes] = await pool.query(
-            `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+            `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
              FROM notes n
              LEFT JOIN folders f ON n.folder_id = f.id
              ORDER BY n.updated_at DESC LIMIT 5`
         );
         const [favorites] = await pool.query(
-            'SELECT id, title, updated_at FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
+            'SELECT id, title, updated_at, color FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
         );
         const [dashboardNotes] = await pool.query(
-            `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+            `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
              FROM notes n
              LEFT JOIN folders f ON n.folder_id = f.id
              WHERE n.show_on_dashboard = 1
@@ -108,6 +115,10 @@ class DashboardService {
              WHERE DATE(ti.due_date) = CURDATE()
              ORDER BY ti.is_completed ASC, ti.due_date ASC`
         );
+        const [projectLinks] = await pool.query(
+            'SELECT id, title, url, icon_url FROM dashboard_links ORDER BY id DESC'
+        );
+        const upcoming = await calendarService.getUpcoming(7);
         const tags = await this.getUniqueTags();
 
         return {
@@ -143,7 +154,9 @@ class DashboardService {
             },
             favorites,
             dashboard_notes: dashboardNotes,
-            tags
+            tags,
+            project_links: projectLinks,
+            calendar_upcoming: upcoming
         };
     }
 
@@ -166,6 +179,42 @@ class DashboardService {
             });
         }
         return Array.from(set).sort((a, b) => a.localeCompare(b, 'ru'));
+    }
+
+    async getLinks() {
+        const [rows] = await pool.query('SELECT id, title, url, icon_url FROM dashboard_links ORDER BY id DESC');
+        return rows;
+    }
+
+    async createLink(data) {
+        const { title, url, icon_url } = data;
+        const [result] = await pool.query(
+            'INSERT INTO dashboard_links (title, url, icon_url) VALUES (?, ?, ?)',
+            [title, url, icon_url || null]
+        );
+        const [rows] = await pool.query('SELECT id, title, url, icon_url FROM dashboard_links WHERE id = ?', [result.insertId]);
+        return rows[0];
+    }
+
+    async updateLink(id, data) {
+        const updates = [];
+        const values = [];
+        if (data.title !== undefined) { updates.push('title = ?'); values.push(data.title); }
+        if (data.url !== undefined) { updates.push('url = ?'); values.push(data.url); }
+        if (data.icon_url !== undefined) { updates.push('icon_url = ?'); values.push(data.icon_url || null); }
+        if (!updates.length) {
+            const [rows] = await pool.query('SELECT id, title, url, icon_url FROM dashboard_links WHERE id = ?', [id]);
+            return rows[0];
+        }
+        values.push(id);
+        await pool.query(`UPDATE dashboard_links SET ${updates.join(', ')} WHERE id = ?`, values);
+        const [rows] = await pool.query('SELECT id, title, url, icon_url FROM dashboard_links WHERE id = ?', [id]);
+        return rows[0];
+    }
+
+    async deleteLink(id) {
+        await pool.query('DELETE FROM dashboard_links WHERE id = ?', [id]);
+        return { success: true };
     }
 }
 

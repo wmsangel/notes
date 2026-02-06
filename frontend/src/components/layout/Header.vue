@@ -8,20 +8,6 @@
       >
         <Menu :size="20" />
       </button>
-
-      <div class="search-box">
-        <Search :size="18" class="search-icon" />
-        <input
-            type="text"
-            placeholder="Поиск заметок... (Ctrl+K)"
-            v-model="searchQuery"
-            @input="handleSearch"
-            @focus="showResults = true"
-            @blur="handleBlur"
-            class="search-input"
-        />
-        <kbd class="kbd" v-if="!searchQuery">⌘K</kbd>
-      </div>
     </div>
 
     <div class="header-right">
@@ -73,40 +59,16 @@
       </button>
     </div>
 
-    <!-- Search Results Dropdown -->
-    <Transition name="fade">
-      <div class="search-results" v-if="showResults && searchResults.length">
-        <div class="results-header">
-          <span>Результаты поиска</span>
-          <span class="results-count">{{ searchResults.length }}</span>
-        </div>
-        <div class="results-list">
-          <router-link
-              v-for="note in searchResults"
-              :key="note.id"
-              :to="`/notes/${note.id}`"
-              class="result-item"
-              @click="closeSearch"
-          >
-            <FileText :size="16" />
-            <div class="result-content">
-              <div class="result-title">{{ note.title }}</div>
-              <div class="result-date">{{ formatDate(note.updated_at) }}</div>
-            </div>
-          </router-link>
-        </div>
-      </div>
-    </Transition>
   </header>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useNotesStore } from '@/stores/notes'
 import { useTheme } from '@/composables/useTheme'
-import { Menu, Search, RefreshCw, Settings, FileText, Sun, Moon, Download } from 'lucide-vue-next'
+import { Menu, RefreshCw, Settings, Sun, Moon, Download } from 'lucide-vue-next'
 import { usePwaInstall } from '@/composables/usePwaInstall'
 
 const router = useRouter()
@@ -116,43 +78,13 @@ const uiStore = useUIStore()
 const notesStore = useNotesStore()
 const { theme, toggleTheme } = useTheme()
 
-const searchQuery = ref('')
-const showResults = ref(false)
 const syncing = ref(false)
-
-const searchResults = computed(() => notesStore.searchResults)
-
-let searchTimeout = null
-const handleSearch = () => {
-  clearTimeout(searchTimeout)
-
-  if (!searchQuery.value.trim()) {
-    notesStore.clearSearch()
-    return
-  }
-
-  searchTimeout = setTimeout(() => {
-    notesStore.searchNotes(searchQuery.value)
-  }, 300)
-}
-
-const handleBlur = () => {
-  setTimeout(() => {
-    showResults.value = false
-  }, 200)
-}
-
-const closeSearch = () => {
-  showResults.value = false
-  searchQuery.value = ''
-  notesStore.clearSearch()
-}
 
 const handleSync = async () => {
   syncing.value = true
   try {
     await Promise.all([
-      notesStore.fetchNotes(),
+      notesStore.fetchNotes()
     ])
     uiStore.showSuccess('Синхронизация завершена')
   } catch (error) {
@@ -164,19 +96,6 @@ const handleSync = async () => {
 
 const openSettings = () => {
   router.push('/settings')
-}
-
-const formatDate = (date) => {
-  const d = new Date(date)
-  const now = new Date()
-  const diff = now - d
-  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
-
-  if (days === 0) return 'Сегодня'
-  if (days === 1) return 'Вчера'
-  if (days < 7) return `${days} дн. назад`
-
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
 }
 </script>
 
@@ -208,54 +127,6 @@ const formatDate = (date) => {
 
 .mobile-menu-btn {
   display: none;
-}
-
-.search-box {
-  position: relative;
-  width: 360px;
-  max-width: 100%;
-}
-
-.search-icon {
-  position: absolute;
-  left: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--text-tertiary);
-  pointer-events: none;
-}
-
-.search-input {
-  width: 100%;
-  padding: 9px 40px 9px 38px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface-raised);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 500;
-  transition: var(--transition);
-}
-
-.search-input:focus {
-  outline: none;
-  border-color: var(--primary);
-  background: var(--surface);
-  box-shadow: 0 0 0 3px var(--primary-soft);
-}
-
-.kbd {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 3px 6px;
-  background: var(--surface-overlay);
-  border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text-tertiary);
-  pointer-events: none;
 }
 
 .divider {

@@ -11,6 +11,7 @@ import noteRoutes from './routes/notes.js';
 import todoRoutes from './routes/todos.js';
 import dashboardRoutes from './routes/dashboard.js';
 import uploadRoutes from './routes/upload.js';
+import calendarRoutes from './routes/calendar.js';
 
 dotenv.config();
 
@@ -56,6 +57,7 @@ app.use('/api/notes', noteRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/calendar', calendarRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

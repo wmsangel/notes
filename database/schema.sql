@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS notes (
     note_type VARCHAR(20) NOT NULL DEFAULT 'note',
     is_favorite BOOLEAN DEFAULT FALSE,
     is_pinned BOOLEAN DEFAULT FALSE,
+    color VARCHAR(7) DEFAULT NULL,
     tags JSON,
     is_protected BOOLEAN DEFAULT FALSE,
     protection_password VARCHAR(255) NULL,
@@ -81,11 +82,13 @@ CREATE TABLE IF NOT EXISTS todo_lists (
     folder_id INT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
+    note_id INT NULL,
     tags JSON NULL,
     color VARCHAR(7) DEFAULT '#6366f1',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL,
+    FOREIGN KEY (note_id) REFERENCES notes(id) ON DELETE SET NULL,
     INDEX idx_folder (folder_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -130,6 +133,30 @@ CREATE TABLE IF NOT EXISTS dashboard_widgets (
     is_visible BOOLEAN DEFAULT TRUE,
     settings JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Таблица ссылок на проекты (быстрый доступ на главной)
+CREATE TABLE IF NOT EXISTS dashboard_links (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    url VARCHAR(1000) NOT NULL,
+    icon_url VARCHAR(1000) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Календарные события
+CREATE TABLE IF NOT EXISTS calendar_events (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    title VARCHAR(255) NOT NULL,
+    description TEXT NULL,
+    start_at DATETIME NOT NULL,
+    end_at DATETIME NULL,
+    frequency ENUM('none', 'weekly', 'monthly', 'yearly') DEFAULT 'none',
+    interval_value INT DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_start_at (start_at),
+    INDEX idx_frequency (frequency)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Таблица для хранения Google Calendar токенов

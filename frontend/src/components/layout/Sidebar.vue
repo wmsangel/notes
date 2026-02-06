@@ -22,12 +22,12 @@
     </div>
 
     <nav class="sidebar-nav">
-      <router-link to="/" class="nav-item" active-class="active">
+      <router-link to="/" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <Home :size="20" />
         <span v-if="!uiStore.sidebarCollapsed">Главная</span>
       </router-link>
 
-      <router-link to="/notes" class="nav-item" active-class="active">
+      <router-link to="/notes" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <FileText :size="20" />
         <span v-if="!uiStore.sidebarCollapsed">Заметки</span>
         <span class="count" v-if="!uiStore.sidebarCollapsed && (dashboardStore.stats.notes?.total ?? 0) > 0">
@@ -35,7 +35,7 @@
         </span>
       </router-link>
 
-      <router-link to="/favorites" class="nav-item" active-class="active">
+      <router-link to="/favorites" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <Star :size="20" />
         <span v-if="!uiStore.sidebarCollapsed">Избранное</span>
         <span class="count" v-if="!uiStore.sidebarCollapsed && (dashboardStore.stats.favorites?.length ?? 0) > 0">
@@ -43,14 +43,19 @@
         </span>
       </router-link>
 
-      <router-link to="/todos" class="nav-item" active-class="active">
+      <router-link to="/todos" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <CheckSquare :size="20" />
         <span v-if="!uiStore.sidebarCollapsed">TODO</span>
       </router-link>
 
-      <router-link to="/search" class="nav-item" active-class="active">
-        <Search :size="20" />
-        <span v-if="!uiStore.sidebarCollapsed">Поиск</span>
+      <router-link to="/calendar" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
+        <Calendar :size="20" />
+        <span v-if="!uiStore.sidebarCollapsed">Календарь</span>
+      </router-link>
+
+      <router-link to="/todos-overview" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
+        <ListTodo :size="20" />
+        <span v-if="!uiStore.sidebarCollapsed">Все задачи</span>
       </router-link>
     </nav>
 
@@ -72,6 +77,7 @@
               :key="note.id"
               :to="`/notes/${note.id}`"
               class="sidebar-note-link"
+              @click="closeSidebarOnMobile"
           >
             <FileText :size="14" />
             <span class="sidebar-note-title">{{ note.title || 'Без названия' }}</span>
@@ -95,6 +101,7 @@
               :key="note.id"
               :to="`/notes/${note.id}`"
               class="sidebar-note-link"
+              @click="closeSidebarOnMobile"
           >
             <FileText :size="14" />
             <span class="sidebar-note-title">{{ note.title || 'Без названия' }}</span>
@@ -123,6 +130,7 @@
               :to="{ path: '/notes', query: { tag } }"
               class="sidebar-tag-link"
               :class="{ active: route.query.tag === tag }"
+              @click="closeSidebarOnMobile"
           >
             <Tag :size="14" />
             <span class="sidebar-tag-name">{{ tag }}</span>
@@ -191,12 +199,13 @@ import {
   Pin,
   Tag,
   CheckSquare,
-  Search,
   Plus,
+  Calendar,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  HardDrive
+  HardDrive,
+  ListTodo
 } from 'lucide-vue-next'
 
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned-expanded'
@@ -281,7 +290,14 @@ const handleFolderSelect = (folderId) => {
   foldersStore.selectFolder(folderId)
   router.push(`/folder/${folderId}`).finally(() => {
     setTimeout(() => { navigating.value = false }, 200)
+    closeSidebarOnMobile()
   })
+}
+
+const closeSidebarOnMobile = () => {
+  if (window.innerWidth <= 768) {
+    uiStore.sidebarCollapsed = true
+  }
 }
 </script>
 

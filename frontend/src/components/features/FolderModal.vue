@@ -58,6 +58,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
 import ModalBase from '@/components/ui/ModalBase.vue'
@@ -76,6 +77,7 @@ const props = defineProps({
 
 const emit = defineEmits(['close'])
 
+const router = useRouter()
 const foldersStore = useFoldersStore()
 const uiStore = useUIStore()
 
@@ -114,8 +116,11 @@ const handleSubmit = async () => {
       await foldersStore.updateFolder(props.folder.id, formData)
       uiStore.showSuccess('Папка обновлена')
     } else {
-      await foldersStore.createFolder(formData)
+      const created = await foldersStore.createFolder(formData)
       uiStore.showSuccess('Папка создана')
+      if (created?.id) {
+        router.push(`/folder/${created.id}`)
+      }
     }
     emit('close')
   } catch (error) {

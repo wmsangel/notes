@@ -102,6 +102,28 @@ export const todoController = {
         }
     },
 
+    async reorderItems(req, res) {
+        try {
+            const { list_id, order } = req.body
+            const result = await todoService.reorderItems(list_id, order)
+            res.json(result)
+        } catch (error) {
+            console.error('Error reordering todo items:', error)
+            res.status(500).json({ error: error.message })
+        }
+    },
+
+    async linkNoteToList(req, res) {
+        try {
+            const { noteId } = req.body
+            const list = await todoService.linkNoteToList(req.params.id, noteId)
+            res.json(list)
+        } catch (error) {
+            console.error('Error linking note to list:', error)
+            res.status(500).json({ error: error.message })
+        }
+    },
+
     // Связь с заметками
     async linkNote(req, res) {
         try {

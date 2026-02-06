@@ -31,6 +31,7 @@ function noteToListItem(note) {
         folder_id: note.folder_id,
         is_favorite: Boolean(note.is_favorite),
         is_pinned: Boolean(note.is_pinned),
+        color: note.color ?? null,
         show_on_dashboard: Boolean(note.show_on_dashboard),
         is_protected: isProtected(note),
         protection_hint: note.protection_hint ?? null,
@@ -116,11 +117,12 @@ export const noteService = {
         // Защищённые заметки: не отдаём контент, заголовок и пароль — только метаданные
         if (note.is_protected) {
             return {
-                id: note.id,
-                folder_id: note.folder_id,
-                is_favorite: note.is_favorite,
-                is_pinned: note.is_pinned,
-                is_protected: true,
+            id: note.id,
+            folder_id: note.folder_id,
+            is_favorite: note.is_favorite,
+            is_pinned: note.is_pinned,
+            color: note.color ?? null,
+            is_protected: true,
                 protection_hint: note.protection_hint,
                 note_type: note.note_type || 'note',
                 tags,
@@ -185,6 +187,7 @@ export const noteService = {
             folder_id,
             is_favorite,
             is_pinned,
+            color,
             tags,
             is_protected,
             protection_password,
@@ -199,13 +202,13 @@ export const noteService = {
             const nextPosition = row?.nextPos ?? 1
             const [result] = await db.query(
                 `INSERT INTO notes (
-          title, content, note_type, folder_id, is_favorite, is_pinned, tags,
+          title, content, note_type, folder_id, is_favorite, is_pinned, color, tags,
           is_protected, protection_password, protection_hint, position
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', typeVal, folder_id || null, is_favorite || false, is_pinned || false,
-                    tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
+                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
                     protection_hint || null, nextPosition
                 ]
             )
@@ -214,13 +217,13 @@ export const noteService = {
         const insertWithoutPosition = async () => {
             const [result] = await db.query(
                 `INSERT INTO notes (
-          title, content, note_type, folder_id, is_favorite, is_pinned, tags,
+          title, content, note_type, folder_id, is_favorite, is_pinned, color, tags,
           is_protected, protection_password, protection_hint
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', typeVal, folder_id || null, is_favorite || false, is_pinned || false,
-                    tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
+                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
                     protection_hint || null
                 ]
             )
@@ -229,12 +232,12 @@ export const noteService = {
 
         const insertMinimal = async () => {
             const [result] = await db.query(
-                `INSERT INTO notes (title, content, note_type, folder_id, is_favorite, is_pinned, tags)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO notes (title, content, note_type, folder_id, is_favorite, is_pinned, color, tags)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', typeVal, folder_id || null, is_favorite || false, is_pinned || false,
-                    tags ? JSON.stringify(tags) : null
+                    color || null, tags ? JSON.stringify(tags) : null
                 ]
             )
             return result
@@ -242,12 +245,12 @@ export const noteService = {
 
         const insertWithoutNoteType = async () => {
             const [result] = await db.query(
-                `INSERT INTO notes (title, content, folder_id, is_favorite, is_pinned, tags)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+                `INSERT INTO notes (title, content, folder_id, is_favorite, is_pinned, color, tags)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', folder_id || null, is_favorite || false, is_pinned || false,
-                    tags ? JSON.stringify(tags) : null
+                    color || null, tags ? JSON.stringify(tags) : null
                 ]
             )
             return result
@@ -293,6 +296,7 @@ export const noteService = {
             is_favorite,
             is_pinned,
             show_on_dashboard,
+            color,
             tags,
             is_protected,
             protection_password,
@@ -332,6 +336,11 @@ export const noteService = {
             updates.push('is_pinned = ?')
             const v = is_pinned
             params.push(v === true || v === 'true' || v === 1 || v === '1' ? 1 : 0)
+        }
+
+        if (color !== undefined) {
+            updates.push('color = ?')
+            params.push(color || null)
         }
 
         if (show_on_dashboard !== undefined) {

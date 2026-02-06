@@ -2,6 +2,7 @@
 <template>
   <div class="todo-item" :class="{ 'completed': item.is_completed }">
     <div class="item-main">
+      <slot name="prepend" />
       <button
           class="checkbox-btn"
           @click="handleToggle"
@@ -199,6 +200,25 @@ const onDueDateChange = (e) => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
+}
+
+.drag-handle {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-overlay);
+  color: var(--text-tertiary);
+  border-radius: 8px;
+  cursor: grab;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .checkbox-btn {

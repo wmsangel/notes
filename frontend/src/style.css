@@ -59,15 +59,15 @@
 
 /* —— Тёмная тема: нейтральный charcoal + красный акцент (как в референсе) —— */
 [data-theme="dark"] {
-    --primary: #e53935;
-    --primary-hover: #c62828;
-    --primary-soft: rgba(229, 57, 53, 0.12);
-    --primary-soft-hover: rgba(229, 57, 53, 0.18);
-    --accent: #ef5350;
-    --secondary: #ef5350;
-    --success: #66bb6a;
-    --warning: #ffa726;
-    --danger: #ef5350;
+    --primary: #60a5fa;
+    --primary-hover: #3b82f6;
+    --primary-soft: rgba(96, 165, 250, 0.16);
+    --primary-soft-hover: rgba(96, 165, 250, 0.24);
+    --accent: #22d3ee;
+    --secondary: #22d3ee;
+    --success: #34d399;
+    --warning: #fbbf24;
+    --danger: #f97316;
 
     --bg: #1a1a1a;
     --bg-page: #1a1a1a;

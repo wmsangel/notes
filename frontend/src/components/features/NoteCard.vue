@@ -1,6 +1,10 @@
 <!-- frontend/src/components/features/NoteCard.vue -->
 <template>
-  <div class="note-card card card-hover" @click="openNote">
+  <div
+    class="note-card card card-hover"
+    :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+    @click="openNote"
+  >
     <div class="note-card-header">
       <h3 class="note-title">
         <Lock v-if="note.is_protected" :size="14" class="note-title-lock" title="Защищена паролем" />

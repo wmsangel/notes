@@ -62,6 +62,7 @@
               v-for="note in favoriteNotes"
               :key="note.id"
               class="note-list-item card card-hover"
+              :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
               @click="$router.push(`/notes/${note.id}`)"
           >
             <div class="list-item-content">
