@@ -77,22 +77,71 @@ class DashboardService {
         const [todosCount] = await pool.query(
             'SELECT COUNT(*) as total, SUM(is_completed) as completed FROM todo_items'
         );
-        const [recentNotes] = await pool.query(
-            `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
-             FROM notes n
-             LEFT JOIN folders f ON n.folder_id = f.id
-             ORDER BY n.updated_at DESC LIMIT 5`
-        );
-        const [favorites] = await pool.query(
-            'SELECT id, title, updated_at, color FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
-        );
-        const [dashboardNotes] = await pool.query(
-            `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
-             FROM notes n
-             LEFT JOIN folders f ON n.folder_id = f.id
-             WHERE n.show_on_dashboard = 1
-             ORDER BY n.updated_at DESC LIMIT 20`
-        );
+        let recentNotes = []
+        try {
+            const [rows] = await pool.query(
+                `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
+                 FROM notes n
+                 LEFT JOIN folders f ON n.folder_id = f.id
+                 ORDER BY n.updated_at DESC LIMIT 5`
+            )
+            recentNotes = rows
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/Unknown column|ER_BAD_FIELD_ERROR/i.test(msg)) {
+                const [rows] = await pool.query(
+                    `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+                     FROM notes n
+                     LEFT JOIN folders f ON n.folder_id = f.id
+                     ORDER BY n.updated_at DESC LIMIT 5`
+                )
+                recentNotes = rows
+            } else {
+                throw err
+            }
+        }
+        let favorites = []
+        try {
+            const [rows] = await pool.query(
+                'SELECT id, title, updated_at, color FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
+            )
+            favorites = rows
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/Unknown column|ER_BAD_FIELD_ERROR/i.test(msg)) {
+                const [rows] = await pool.query(
+                    'SELECT id, title, updated_at FROM notes WHERE is_favorite = 1 ORDER BY updated_at DESC LIMIT 10'
+                )
+                favorites = rows
+            } else {
+                throw err
+            }
+        }
+        let dashboardNotes = []
+        try {
+            const [rows] = await pool.query(
+                `SELECT n.id, n.title, n.updated_at, n.folder_id, n.color, f.name AS folder_name
+                 FROM notes n
+                 LEFT JOIN folders f ON n.folder_id = f.id
+                 WHERE n.show_on_dashboard = 1
+                 ORDER BY n.updated_at DESC LIMIT 20`
+            )
+            dashboardNotes = rows
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/Unknown column|ER_BAD_FIELD_ERROR/i.test(msg)) {
+                const [rows] = await pool.query(
+                    `SELECT n.id, n.title, n.updated_at, n.folder_id, f.name AS folder_name
+                     FROM notes n
+                     LEFT JOIN folders f ON n.folder_id = f.id
+                     WHERE n.show_on_dashboard = 1
+                     ORDER BY n.updated_at DESC LIMIT 20`
+                )
+                dashboardNotes = rows
+            } else {
+                throw err
+            }
+        }
         const [foldersList] = await pool.query(
             'SELECT id, name, parent_id FROM folders ORDER BY position ASC, name ASC'
         );
@@ -115,10 +164,27 @@ class DashboardService {
              WHERE DATE(ti.due_date) = CURDATE()
              ORDER BY ti.is_completed ASC, ti.due_date ASC`
         );
-        const [projectLinks] = await pool.query(
-            'SELECT id, title, url, icon_url FROM dashboard_links ORDER BY id DESC'
-        );
-        const upcoming = await calendarService.getUpcoming(7);
+        let projectLinks = []
+        try {
+            const [rows] = await pool.query(
+                'SELECT id, title, url, icon_url FROM dashboard_links ORDER BY id DESC'
+            )
+            projectLinks = rows
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (!/dashboard_links|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                throw err
+            }
+        }
+        let upcoming = []
+        try {
+            upcoming = await calendarService.getUpcoming(7);
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (!/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                throw err
+            }
+        }
         const tags = await this.getUniqueTags();
 
         return {

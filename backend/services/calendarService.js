@@ -108,21 +108,39 @@ function generateOccurrences(event, rangeStart, rangeEnd) {
 
 export const calendarService = {
     async getAll() {
-        const [rows] = await db.query('SELECT * FROM calendar_events ORDER BY start_at DESC')
-        return rows
+        try {
+            const [rows] = await db.query('SELECT * FROM calendar_events ORDER BY start_at DESC')
+            return rows
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                return []
+            }
+            throw err
+        }
     },
 
     async create(data) {
         const { title, description, start_at, end_at, frequency, interval_value } = data
         const freq = ['none', 'weekly', 'monthly', 'yearly'].includes(frequency) ? frequency : 'none'
         const interval = Math.max(1, parseInt(interval_value || 1, 10))
-        const [result] = await db.query(
-            `INSERT INTO calendar_events (title, description, start_at, end_at, frequency, interval_value)
+        try {
+            const [result] = await db.query(
+                `INSERT INTO calendar_events (title, description, start_at, end_at, frequency, interval_value)
        VALUES (?, ?, ?, ?, ?, ?)`,
-            [title, description || null, start_at, end_at || null, freq, interval]
-        )
-        const [rows] = await db.query('SELECT * FROM calendar_events WHERE id = ?', [result.insertId])
-        return rows[0]
+                [title, description || null, start_at, end_at || null, freq, interval]
+            )
+            const [rows] = await db.query('SELECT * FROM calendar_events WHERE id = ?', [result.insertId])
+            return rows[0]
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                const e = new Error('Calendar migrations not applied')
+                e.code = 'ER_MIGRATION_NEEDED'
+                throw e
+            }
+            throw err
+        }
     },
 
     async update(id, data) {
@@ -154,19 +172,39 @@ export const calendarService = {
             updates.push('interval_value = ?')
             values.push(interval)
         }
-        if (!updates.length) {
+        try {
+            if (!updates.length) {
+                const [rows] = await db.query('SELECT * FROM calendar_events WHERE id = ?', [id])
+                return rows[0]
+            }
+            values.push(id)
+            await db.query(`UPDATE calendar_events SET ${updates.join(', ')} WHERE id = ?`, values)
             const [rows] = await db.query('SELECT * FROM calendar_events WHERE id = ?', [id])
             return rows[0]
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                const e = new Error('Calendar migrations not applied')
+                e.code = 'ER_MIGRATION_NEEDED'
+                throw e
+            }
+            throw err
         }
-        values.push(id)
-        await db.query(`UPDATE calendar_events SET ${updates.join(', ')} WHERE id = ?`, values)
-        const [rows] = await db.query('SELECT * FROM calendar_events WHERE id = ?', [id])
-        return rows[0]
     },
 
     async delete(id) {
-        await db.query('DELETE FROM calendar_events WHERE id = ?', [id])
-        return { success: true }
+        try {
+            await db.query('DELETE FROM calendar_events WHERE id = ?', [id])
+            return { success: true }
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                const e = new Error('Calendar migrations not applied')
+                e.code = 'ER_MIGRATION_NEEDED'
+                throw e
+            }
+            throw err
+        }
     },
 
     async getUpcoming(days = 7) {
@@ -177,13 +215,23 @@ export const calendarService = {
         rangeEnd.setDate(rangeEnd.getDate() + days)
         rangeEnd.setHours(23, 59, 59, 999)
 
-        const [rows] = await db.query(
-            `SELECT * FROM calendar_events
+        let rows = []
+        try {
+            const result = await db.query(
+                `SELECT * FROM calendar_events
        WHERE frequency <> 'none'
           OR (start_at BETWEEN ? AND ?)
        ORDER BY start_at ASC`,
-            [rangeStart, rangeEnd]
-        )
+                [rangeStart, rangeEnd]
+            )
+            rows = result[0]
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                return []
+            }
+            throw err
+        }
 
         const occurrences = []
         for (const row of rows) {

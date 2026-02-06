@@ -29,6 +29,10 @@ export const calendarController = {
             res.status(201).json(event)
         } catch (error) {
             console.error('Error creating calendar event:', error)
+            if (error.code === 'ER_MIGRATION_NEEDED') {
+                res.status(409).json({ error: 'Calendar migrations not applied' })
+                return
+            }
             res.status(500).json({ error: error.message })
         }
     },
@@ -39,6 +43,10 @@ export const calendarController = {
             res.json(event)
         } catch (error) {
             console.error('Error updating calendar event:', error)
+            if (error.code === 'ER_MIGRATION_NEEDED') {
+                res.status(409).json({ error: 'Calendar migrations not applied' })
+                return
+            }
             res.status(500).json({ error: error.message })
         }
     },
@@ -49,6 +57,10 @@ export const calendarController = {
             res.json({ success: true })
         } catch (error) {
             console.error('Error deleting calendar event:', error)
+            if (error.code === 'ER_MIGRATION_NEEDED') {
+                res.status(409).json({ error: 'Calendar migrations not applied' })
+                return
+            }
             res.status(500).json({ error: error.message })
         }
     }
