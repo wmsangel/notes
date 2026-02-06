@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     description TEXT NULL,
     start_at DATETIME NOT NULL,
     end_at DATETIME NULL,
-    frequency ENUM('none', 'weekly', 'monthly', 'yearly') DEFAULT 'none',
+    frequency ENUM('none', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly') DEFAULT 'none',
     interval_value INT DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
