@@ -45,7 +45,7 @@
             v-if="list.linked_note"
             :to="`/notes/${list.linked_note.id}`"
             class="list-note-chip"
-            :style="list.linked_note.color ? { borderLeft: `4px solid ${list.linked_note.color}` } : null"
+            :style="list.linked_note.color ? { borderLeft: `1px solid ${list.linked_note.color}` } : null"
           >
             {{ list.linked_note.title || 'Без названия' }}
           </router-link>
@@ -121,7 +121,9 @@
                   @delete="deleteItem"
                 >
                   <template #prepend>
-                    <button class="drag-handle" type="button" title="Перетащить" @click.stop>⠿</button>
+                    <button class="drag-handle" type="button" title="Перетащить" @click.stop>
+                      <GripVertical :size="18" stroke-width="2" />
+                    </button>
                   </template>
                   <template #append-actions>
                     <button
@@ -320,7 +322,8 @@ import {
   Plus,
   ListTodo,
   FileText,
-  Link2
+  Link2,
+  GripVertical
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -772,11 +775,17 @@ const getTagColor = (tag) => {
 }
 
 .drag-ghost {
-  opacity: 0.6;
+  opacity: 0.45;
+  transform: scale(0.98);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
 }
 
 .drag-chosen {
-  opacity: 0.9;
+  opacity: 1;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
 }
 
 .empty-state {

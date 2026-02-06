@@ -2,7 +2,7 @@
 <template>
   <div
     class="note-card card card-hover"
-    :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+    :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
     @click="openNote"
   >
     <div class="note-card-header">

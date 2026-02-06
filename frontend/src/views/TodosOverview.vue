@@ -48,7 +48,7 @@
               v-if="list.linked_note"
               :to="`/notes/${list.linked_note.id}`"
               class="group-note-chip"
-              :style="list.linked_note.color ? { borderLeft: `4px solid ${list.linked_note.color}` } : null"
+              :style="list.linked_note.color ? { borderLeft: `1px solid ${list.linked_note.color}` } : null"
             >
               {{ list.linked_note.title || 'Без названия' }}
             </router-link>
@@ -89,7 +89,9 @@
                     @delete="(id) => deleteItem(list.id, id)"
                   >
                     <template #prepend>
-                      <button class="drag-handle" type="button" title="Перетащить" @click.stop>⠿</button>
+                      <button class="drag-handle" type="button" title="Перетащить" @click.stop>
+                        <GripVertical :size="18" stroke-width="2" />
+                      </button>
                     </template>
                     <template #append-actions>
                       <button
@@ -166,7 +168,9 @@
                     @delete="(id) => deleteItem(list.id, id)"
                   >
                     <template #prepend>
-                      <button class="drag-handle" type="button" title="Перетащить" @click.stop>⠿</button>
+                      <button class="drag-handle" type="button" title="Перетащить" @click.stop>
+                        <GripVertical :size="18" stroke-width="2" />
+                      </button>
                     </template>
                     <template #append-actions>
                       <button
@@ -264,13 +268,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import draggable from 'vuedraggable'
+import { useTodosStore } from '@/stores/todos'
 import { useNotesStore } from '@/stores/notes'
 import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
 import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
-import { ListTodo, Loader, Plus, ChevronRight, ChevronDown, FileText, Link2 } from 'lucide-vue-next'
+import { ListTodo, Loader, Plus, ChevronRight, ChevronDown, FileText, Link2, GripVertical } from 'lucide-vue-next'
 
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
@@ -743,11 +748,17 @@ onMounted(loadOverview)
 }
 
 .drag-ghost {
-  opacity: 0.6;
+  opacity: 0.45;
+  transform: scale(0.98);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
 }
 
 .drag-chosen {
-  opacity: 0.9;
+  opacity: 1;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
 }
 
 .link-modal {

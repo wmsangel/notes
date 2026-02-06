@@ -5,8 +5,38 @@ function toDate(val) {
     return val ? new Date(val) : null
 }
 
+function addDays(date, days) {
+    const d = new Date(date)
+    d.setDate(d.getDate() + days)
+    return d
+}
+
 function addWeeks(date, weeks) {
     return new Date(date.getTime() + weeks * 7 * 24 * 60 * 60 * 1000)
+}
+
+/** Следующий будний день (Пн–Пт). Суббота → понедельник, воскресенье → понедельник. */
+function nextWeekday(date) {
+    const d = new Date(date)
+    d.setDate(d.getDate() + 1)
+    const day = d.getDay()
+    if (day === 0) d.setDate(d.getDate() + 1)
+    if (day === 6) d.setDate(d.getDate() + 2)
+    return d
+}
+
+function isWeekday(date) {
+    const d = date.getDay()
+    return d >= 1 && d <= 5
+}
+
+/** Ближайший будний день (сегодня или следующий Пн, если сейчас сб/вс). */
+function toNextWeekday(date) {
+    const d = new Date(date)
+    const day = d.getDay()
+    if (day === 0) return addDays(d, 1)
+    if (day === 6) return addDays(d, 2)
+    return d
 }
 
 function addMonthsClamped(date, months) {
@@ -59,6 +89,29 @@ function generateOccurrences(event, rangeStart, rangeEnd) {
     }
 
     let current = start
+
+    if (freq === 'daily') {
+        const step = interval * 24 * 60 * 60 * 1000
+        if (current < rangeStart) {
+            const diff = rangeStart.getTime() - start.getTime()
+            const k = Math.ceil(diff / step)
+            current = new Date(start.getTime() + k * step)
+        }
+        while (current <= rangeEnd) {
+            if (current >= rangeStart) pushOccurrence(current)
+            current = addDays(current, interval)
+        }
+        return occurrences
+    }
+
+    if (freq === 'weekdays') {
+        current = toNextWeekday(current)
+        while (current <= rangeEnd) {
+            if (current >= rangeStart) pushOccurrence(current)
+            current = nextWeekday(current)
+        }
+        return occurrences
+    }
 
     if (freq === 'weekly') {
         const diff = rangeStart.getTime() - start.getTime()
@@ -122,7 +175,7 @@ export const calendarService = {
 
     async create(data) {
         const { title, description, start_at, end_at, frequency, interval_value } = data
-        const freq = ['none', 'weekly', 'monthly', 'yearly'].includes(frequency) ? frequency : 'none'
+        const freq = ['none', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly'].includes(frequency) ? frequency : 'none'
         const interval = Math.max(1, parseInt(interval_value || 1, 10))
         try {
             const [result] = await db.query(
@@ -163,7 +216,7 @@ export const calendarService = {
             values.push(data.end_at || null)
         }
         if (data.frequency !== undefined) {
-            const freq = ['none', 'weekly', 'monthly', 'yearly'].includes(data.frequency) ? data.frequency : 'none'
+            const freq = ['none', 'daily', 'weekdays', 'weekly', 'monthly', 'yearly'].includes(data.frequency) ? data.frequency : 'none'
             updates.push('frequency = ?')
             values.push(freq)
         }

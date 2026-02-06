@@ -108,7 +108,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
-                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+                :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -137,7 +137,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
-                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+                :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -170,7 +170,7 @@
                 :key="note.id"
                 :to="`/notes/${note.id}`"
                 class="note-item"
-                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+                :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
             >
               <div class="note-info">
                 <div class="note-title">{{ note.title }}</div>
@@ -239,6 +239,9 @@
             <Link2 :size="20" />
             Проекты
           </h2>
+          <button class="btn btn-sm btn-primary" @click="openAddProjectModal">
+            Добавить проект
+          </button>
         </div>
 
         <div class="project-links-list" v-if="projectLinks.length">
@@ -269,35 +272,9 @@
         </div>
         <div v-else class="empty-state">
           <p>Пока нет ссылок</p>
-        </div>
-
-        <div class="project-links-form">
-          <input
-            v-model="newLink.title"
-            class="input"
-            type="text"
-            placeholder="Название проекта"
-          />
-          <input
-            v-model="newLink.url"
-            class="input"
-            type="url"
-            placeholder="URL"
-          />
-          <div class="project-links-row">
-            <input
-              v-model="newLink.icon_url"
-              class="input"
-              type="url"
-              placeholder="Иконка (URL)"
-            />
-            <button class="btn btn-secondary" type="button" @click="useFavicon">
-              Favicon
-            </button>
-            <button class="btn btn-primary" type="button" @click="addLink" :disabled="addingLink">
-              Добавить
-            </button>
-          </div>
+          <button class="btn btn-sm btn-ghost" @click="openAddProjectModal">
+            Добавить первый проект
+          </button>
         </div>
       </div>
     </div>
@@ -311,6 +288,7 @@ import { useTodosStore } from '@/stores/todos'
 import { useUIStore } from '@/stores/ui'
 import { dashboardApi } from '@/services/api/dashboard'
 import MainLayout from '@/components/layout/MainLayout.vue'
+import ProjectLinkModal from '@/components/features/ProjectLinkModal.vue'
 import {
   FileText,
   Star,
@@ -333,12 +311,14 @@ const uiStore = useUIStore()
 const stats = computed(() => dashboardStore.stats)
 const togglingTasks = reactive({})
 const projectLinks = ref([])
-const addingLink = ref(false)
-const newLink = reactive({
-  title: '',
-  url: '',
-  icon_url: ''
-})
+
+const openAddProjectModal = () => {
+  uiStore.openModal(ProjectLinkModal, {
+    onCreated: (link) => {
+      projectLinks.value = [link, ...projectLinks.value]
+    }
+  })
+}
 
 const rootFoldersForDashboard = computed(() => {
   const list = stats.value?.folders?.list || []
@@ -374,34 +354,6 @@ const getFavicon = (url) => {
     return `https://www.google.com/s2/favicons?domain=${u.hostname}&sz=64`
   } catch {
     return ''
-  }
-}
-
-const useFavicon = () => {
-  if (!newLink.url) return
-  newLink.icon_url = getFavicon(newLink.url)
-}
-
-const addLink = async () => {
-  if (!newLink.title.trim() || !newLink.url.trim()) {
-    uiStore.showError('Введите название и URL')
-    return
-  }
-  addingLink.value = true
-  try {
-    const res = await dashboardApi.createLink({
-      title: newLink.title.trim(),
-      url: newLink.url.trim(),
-      icon_url: newLink.icon_url.trim() || null
-    })
-    projectLinks.value = [res.data, ...projectLinks.value]
-    newLink.title = ''
-    newLink.url = ''
-    newLink.icon_url = ''
-  } catch (error) {
-    uiStore.showError('Ошибка добавления ссылки')
-  } finally {
-    addingLink.value = false
   }
 }
 
@@ -765,18 +717,6 @@ const formatEventDate = (val) => {
 
 .project-link-remove {
   color: var(--text-tertiary);
-}
-
-.project-links-form {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.project-links-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 8px;
 }
 
 @media (min-width: 769px) {

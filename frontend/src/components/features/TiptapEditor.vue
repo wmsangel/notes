@@ -358,7 +358,10 @@ const editor = useEditor({
     }),
     Link.configure({
       openOnClick: false,
-      HTMLAttributes: {}
+      HTMLAttributes: {
+        target: '_blank',
+        rel: 'noopener noreferrer'
+      }
     }),
     TaskList,
     TaskItem.configure({
@@ -372,9 +375,14 @@ const editor = useEditor({
     },
     handleClick: (view, event) => {
       const target = event.target
-      if (target?.tagName === 'A' && target.getAttribute('href')?.startsWith('/notes/')) {
-        event.preventDefault()
-        router.push(target.getAttribute('href'))
+      if (target?.tagName !== 'A') return
+      const href = target.getAttribute('href')
+      if (!href?.startsWith('/notes/')) return
+      event.preventDefault()
+      if (event.ctrlKey || event.metaKey) {
+        window.open(href, '_blank', 'noopener,noreferrer')
+      } else {
+        router.push(href)
       }
     },
     handleDrop: (view, event) => {

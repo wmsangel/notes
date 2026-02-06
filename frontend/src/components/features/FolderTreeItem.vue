@@ -23,30 +23,33 @@
 
       <span class="folder-name">{{ folder.name }}</span>
 
-      <div class="folder-actions">
+      <div class="folder-actions" ref="actionsRef">
         <button
-            class="btn btn-icon-sm btn-ghost"
-            @click.stop="handleAddSubfolder"
-            title="Добавить подпапку"
+            type="button"
+            class="btn btn-icon-sm btn-ghost folder-menu-btn"
+            @click.stop="toggleMenu"
+            title="Действия"
+            aria-haspopup="true"
+            :aria-expanded="menuOpen"
         >
-          <Plus :size="14" />
+          <MoreVertical :size="16" />
         </button>
-
-        <button
-            class="btn btn-icon-sm btn-ghost"
-            @click.stop="handleEdit"
-            title="Редактировать"
-        >
-          <Edit2 :size="14" />
-        </button>
-
-        <button
-            class="btn btn-icon-sm btn-ghost"
-            @click.stop="handleDelete"
-            title="Удалить"
-        >
-          <Trash2 :size="14" />
-        </button>
+        <Transition name="dropdown">
+          <div v-if="menuOpen" class="folder-dropdown card" @click.stop>
+            <button type="button" class="dropdown-item" @click="onAddSubfolder">
+              <Plus :size="14" />
+              Добавить подпапку
+            </button>
+            <button type="button" class="dropdown-item" @click="onEdit">
+              <Edit2 :size="14" />
+              Редактировать
+            </button>
+            <button type="button" class="dropdown-item dropdown-item--danger" @click="onDelete">
+              <Trash2 :size="14" />
+              Удалить
+            </button>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -64,11 +67,11 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
-import { Folder, ChevronRight, Plus, Edit2, Trash2 } from 'lucide-vue-next'
+import { Folder, ChevronRight, Plus, Edit2, Trash2, MoreVertical } from 'lucide-vue-next'
 import FolderModal from './FolderModal.vue'
 
 const props = defineProps({
@@ -84,6 +87,45 @@ const foldersStore = useFoldersStore()
 const uiStore = useUIStore()
 
 const isExpanded = ref(false)
+const menuOpen = ref(false)
+const actionsRef = ref(null)
+
+const toggleMenu = () => {
+  menuOpen.value = !menuOpen.value
+}
+
+const closeMenu = () => {
+  menuOpen.value = false
+}
+
+const onAddSubfolder = () => {
+  closeMenu()
+  handleAddSubfolder()
+}
+
+const onEdit = () => {
+  closeMenu()
+  handleEdit()
+}
+
+const onDelete = () => {
+  closeMenu()
+  handleDelete()
+}
+
+const handleClickOutside = (e) => {
+  if (actionsRef.value && !actionsRef.value.contains(e.target)) {
+    closeMenu()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 const hasChildren = computed(() => {
   return props.folder.children && props.folder.children.length > 0
@@ -183,10 +225,6 @@ const handleDelete = async () => {
   color: var(--primary);
 }
 
-.folder-item:hover .folder-actions {
-  opacity: 1;
-}
-
 .expand-btn {
   width: 20px;
   height: 20px;
@@ -219,14 +257,79 @@ const handleDelete = async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .folder-name {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    line-clamp: 2;
+    word-break: break-word;
+  }
 }
 
 .folder-actions {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 2px;
   opacity: 0;
   transition: var(--transition);
+}
+
+.folder-item:hover .folder-actions {
+  opacity: 1;
+}
+
+.folder-menu-btn {
+  padding: 4px;
+}
+
+.folder-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+  min-width: 180px;
+  padding: 6px 0;
+  z-index: 100;
+  box-shadow: var(--shadow-md);
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px 14px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-tertiary);
+}
+
+.dropdown-item--danger {
+  color: var(--danger);
+}
+
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .folder-children {

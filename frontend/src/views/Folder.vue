@@ -89,7 +89,7 @@
                   aria-label="Перетащить"
                   @click.stop
               >
-                ⠿
+                <GripVertical :size="18" stroke-width="2" />
               </button>
               <NoteCard
                   :note="note"
@@ -115,7 +115,7 @@
           <template #item="{ element: note }">
             <div
                 class="note-list-item card card-hover"
-                :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+                :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
                 @click="$router.push(`/notes/${note.id}`)"
             >
               <button
@@ -125,7 +125,7 @@
                   aria-label="Перетащить"
                   @click.stop
               >
-                ⠿
+                <GripVertical :size="18" stroke-width="2" />
               </button>
               <div class="list-item-content">
                 <div class="list-item-header">
@@ -179,7 +179,7 @@ import { useUIStore } from '@/stores/ui'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import NoteCard from '@/components/features/NoteCard.vue'
 import FolderModal from '@/components/features/FolderModal.vue'
-import { ArrowLeft, Folder, Edit2, Plus, FileText, AlertCircle, Grid, List, Star, Pin, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Folder, Edit2, Plus, FileText, AlertCircle, Grid, List, Star, Pin, Trash2, GripVertical } from 'lucide-vue-next'
 
 const router = useRouter()
 const route = useRoute()
@@ -439,11 +439,17 @@ async function onReorderEnd() {
 }
 
 .drag-ghost {
-  opacity: 0.5;
+  opacity: 0.45;
+  transform: scale(0.98);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
 }
 
 .drag-chosen {
-  opacity: 0.9;
+  opacity: 1;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
 }
 
 .notes-grid.notes-grid--can-reorder,
@@ -476,15 +482,22 @@ async function onReorderEnd() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border-subtle);
   background: var(--surface-overlay);
   color: var(--text-tertiary);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: grab;
   user-select: none;
   touch-action: manipulation;
+  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.drag-handle:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .drag-handle:active {

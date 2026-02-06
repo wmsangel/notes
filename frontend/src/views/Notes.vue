@@ -109,7 +109,7 @@
               aria-label="Перетащить"
               @click.stop
             >
-              ⠿
+              <GripVertical :size="18" stroke-width="2" />
             </button>
             <NoteCard
                 :note="note"
@@ -137,7 +137,7 @@
         <template #item="{ element: note }">
           <div
               class="note-list-item card card-hover"
-              :style="note.color ? { borderLeft: `4px solid ${note.color}` } : null"
+              :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
               @click="$router.push(`/notes/${note.id}`)"
           >
           <button
@@ -148,7 +148,7 @@
             aria-label="Перетащить"
             @click.stop
           >
-            ⠿
+            <GripVertical :size="18" stroke-width="2" />
           </button>
           <div class="list-item-content">
             <div class="list-item-header">
@@ -194,7 +194,7 @@ import { useNotesStore } from '@/stores/notes'
 import { useUIStore } from '@/stores/ui'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import NoteCard from '@/components/features/NoteCard.vue'
-import { FileText, Plus, Pin, Clock, Star, Trash2, Grid, List, Lock } from 'lucide-vue-next'
+import { FileText, Plus, Pin, Clock, Star, Trash2, Grid, List, Lock, GripVertical } from 'lucide-vue-next'
 
 const router = useRouter()
 const notesStore = useNotesStore()
@@ -393,31 +393,32 @@ const getContentPreview = (note) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-bottom: 24px;
-  padding: 16px;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 10px 12px;
   background: var(--bg);
   border-radius: var(--radius);
   border: 1px solid var(--border-light);
+  flex-wrap: wrap;
 }
 
 .filter-buttons {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .filter-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
+  gap: 4px;
+  padding: 6px 12px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   transition: var(--transition);
 }
@@ -433,11 +434,17 @@ const getContentPreview = (note) => {
 }
 
 .drag-ghost {
-  opacity: 0.5;
+  opacity: 0.45;
+  transform: scale(0.98);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius);
 }
 
 .drag-chosen {
-  opacity: 0.9;
+  opacity: 1;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius);
 }
 
 .loading-state {
@@ -505,8 +512,9 @@ const getContentPreview = (note) => {
 }
 
 .drag-hint {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-tertiary);
+  white-space: nowrap;
 }
 
 .note-list-item {
@@ -525,15 +533,22 @@ const getContentPreview = (note) => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--border-subtle);
   background: var(--surface-overlay);
   color: var(--text-tertiary);
-  border-radius: 10px;
+  border-radius: 8px;
   cursor: grab;
   user-select: none;
   touch-action: manipulation;
+  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+}
+
+.drag-handle:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .drag-handle:active {
@@ -626,8 +641,18 @@ const getContentPreview = (note) => {
   }
 
   .filters-bar {
-    flex-direction: column;
-    align-items: stretch;
+    padding: 8px 10px;
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+
+  .filter-btn {
+    padding: 5px 10px;
+    font-size: 12px;
+  }
+
+  .drag-hint {
+    font-size: 11px;
   }
 
   .notes-grid {

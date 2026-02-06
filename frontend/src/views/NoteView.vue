@@ -32,7 +32,7 @@
           Назад
         </button>
 
-        <div class="header-meta">
+        <div class="header-meta desktop-only">
           <select
               class="folder-select"
               v-model="selectedFolder"
@@ -98,7 +98,17 @@
           </div>
         </div>
 
-        <div class="header-actions">
+        <button
+            type="button"
+            class="btn btn-icon btn-ghost mobile-menu-btn"
+            @click="showMobileMenu = !showMobileMenu"
+            title="Ещё"
+            aria-label="Меню заметки"
+        >
+          <MoreVertical :size="22" />
+        </button>
+
+        <div class="header-actions desktop-only">
           <template v-if="isPage">
             <button
                 class="btn btn-ghost btn-page-mode"
@@ -163,6 +173,120 @@
           </button>
         </div>
       </div>
+
+      <Transition name="slide-down">
+        <div v-if="showMobileMenu" class="mobile-menu-panel" @click.self="showMobileMenu = false">
+          <div class="mobile-menu-card card">
+            <div class="mobile-menu-inner">
+            <div class="mobile-menu-section">
+              <label class="mobile-menu-label">Папка</label>
+              <select
+                  class="folder-select full-width"
+                  v-model="selectedFolder"
+                  @change="handleFolderChange"
+              >
+                <option :value="null">Без папки</option>
+                <option v-for="folder in folderOptions" :key="folder.id" :value="folder.id">
+                  {{ folder.name }}
+                </option>
+              </select>
+            </div>
+            <div class="mobile-menu-section">
+              <label class="mobile-menu-label">Цвет</label>
+              <div class="note-color-picker">
+                <button
+                    v-for="color in noteColors"
+                    :key="color"
+                    type="button"
+                    class="note-color-dot"
+                    :class="{ active: noteColor === color }"
+                    :style="{ background: color }"
+                    @click="setNoteColor(color)"
+                    :title="`Цвет: ${color}`"
+                    aria-label="Цвет заметки"
+                />
+                <button
+                    v-if="noteColor"
+                    type="button"
+                    class="note-color-clear"
+                    @click="setNoteColor(null)"
+                    title="Сбросить цвет"
+                >
+                  Сброс
+                </button>
+              </div>
+            </div>
+            <div class="mobile-menu-section">
+              <label class="mobile-menu-label">Теги</label>
+              <div class="note-tags-row">
+                <span
+                    v-for="(tag, index) in noteTags"
+                    :key="`m-${tag}-${index}`"
+                    class="tag-chip"
+                >
+                  {{ tag }}
+                  <button type="button" class="tag-remove" @click="removeTag(index)" title="Удалить тег" aria-label="Удалить тег">
+                    <X :size="12" />
+                  </button>
+                </span>
+                <input
+                    type="text"
+                    class="tag-input"
+                    v-model="newTag"
+                    @keydown="onTagInputKeydown"
+                    placeholder="Тег..."
+                    maxlength="50"
+                />
+              </div>
+            </div>
+            <div class="mobile-menu-divider" />
+            <div class="mobile-menu-actions">
+              <template v-if="isPage">
+                <button
+                    type="button"
+                    class="btn btn-ghost mobile-menu-action"
+                    :class="{ 'active': pageViewMode === 'view' }"
+                    @click="pageViewMode = 'view'; showMobileMenu = false"
+                >
+                  <Eye :size="18" />
+                  <span>Просмотр</span>
+                </button>
+                <button
+                    type="button"
+                    class="btn btn-ghost mobile-menu-action"
+                    :class="{ 'active': pageViewMode === 'edit' }"
+                    @click="pageViewMode = 'edit'; showMobileMenu = false"
+                >
+                  <Pencil :size="18" />
+                  <span>Редактировать</span>
+                </button>
+              </template>
+              <button type="button" class="btn btn-ghost mobile-menu-action" @click="toggleFavorite" :class="{ 'active': note?.is_favorite }">
+                <Star :size="18" :fill="note?.is_favorite ? 'currentColor' : 'none'" />
+                <span>Избранное</span>
+              </button>
+              <button type="button" class="btn btn-ghost mobile-menu-action" @click="toggleShowOnDashboard" :class="{ 'active': note?.show_on_dashboard }">
+                <LayoutDashboard :size="18" :fill="note?.show_on_dashboard ? 'currentColor' : 'none'" />
+                <span>На главной</span>
+              </button>
+              <button type="button" class="btn btn-ghost mobile-menu-action" @click="toggleProtection" :class="{ 'active': note?.is_protected }">
+                <Lock v-if="note?.is_protected" :size="18" />
+                <Unlock v-else :size="18" />
+                <span>Защита</span>
+              </button>
+              <button type="button" class="btn btn-ghost mobile-menu-action" @click="showMobileMenu = false; saveNote(true)" :disabled="saving">
+                <Check :size="18" />
+                <span>Сохранить</span>
+              </button>
+              <button type="button" class="btn btn-ghost mobile-menu-action mobile-menu-action--danger" @click="closeMobileMenuAndDelete">
+                <Trash2 :size="18" />
+                <span>Удалить</span>
+              </button>
+            </div>
+          </div>
+          </div>
+        </div>
+      </Transition>
 
       <input
           ref="titleInputRef"
@@ -268,7 +392,7 @@ import { useDashboardStore } from '@/stores/dashboard'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TiptapEditor from '@/components/features/TiptapEditor.vue'
 import PageView from '@/components/features/PageView.vue'
-import { ArrowLeft, Star, Trash2, Clock, Loader, Check, Lock, Unlock, X, Eye, Pencil, LayoutDashboard } from 'lucide-vue-next'
+import { ArrowLeft, Star, Trash2, Clock, Loader, Check, Lock, Unlock, X, Eye, Pencil, LayoutDashboard, MoreVertical } from 'lucide-vue-next'
 import { uploadApi } from '@/services/api/upload'
 
 const route = useRoute()
@@ -303,6 +427,13 @@ const noteColor = ref(null)
 const newTag = ref('')
 const tagInputRef = ref(null)
 const pageViewMode = ref('view')
+const showMobileMenu = ref(false)
+
+function closeMobileMenuAndDelete () {
+  showMobileMenu.value = false
+  deleteNote()
+}
+
 const noteColors = [
   '#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e',
   '#06b6d4', '#3b82f6', '#6366f1', '#a855f7', '#ec4899'
@@ -390,9 +521,16 @@ async function loadNoteForId(noteId) {
   }
 }
 
+function handleMobileMenuClickOutside (e) {
+  if (!showMobileMenu.value) return
+  if (e.target.closest('.note-header') || e.target.closest('.mobile-menu-panel')) return
+  showMobileMenu.value = false
+}
+
 onMounted(async () => {
   await Promise.all([foldersStore.fetchFolders(), foldersStore.fetchFolderTree()])
   window.addEventListener('keydown', handleKeydown)
+  document.addEventListener('click', handleMobileMenuClickOutside)
   const noteId = route.params.id
   if (!noteId) return
   try {
@@ -551,6 +689,7 @@ onBeforeUnmount(() => {
     clearTimeout(saveTimeout)
   }
   window.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('click', handleMobileMenuClickOutside)
 })
 
 onBeforeRouteLeave(async (to, from, next) => {
@@ -727,6 +866,10 @@ const formatDate = (date) => {
   justify-content: space-between;
   margin-bottom: 24px;
   gap: 16px;
+}
+
+.desktop-only {
+  /* на мобилке скрыто в @media */
 }
 
 .back-btn {
@@ -1157,26 +1300,107 @@ const formatDate = (date) => {
   margin-bottom: 8px;
 }
 
+.mobile-menu-btn {
+  display: none;
+}
+
+.mobile-menu-panel {
+  display: none;
+}
+
+/* Мобилка: мета и действия в меню «Ещё» */
 @media (max-width: 768px) {
   .note-view {
     padding-bottom: 60px;
   }
 
   .note-header {
-    flex-wrap: wrap;
-    gap: 12px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-bottom: 16px;
   }
 
-  .header-meta {
-    order: 3;
+  .desktop-only {
+    display: none !important;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
+  .mobile-menu-panel {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 500;
+    padding: 0;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.4);
+    padding-top: 20%;
+  }
+
+  .mobile-menu-panel .mobile-menu-card {
+    margin: 0;
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+
+  .mobile-menu-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .mobile-menu-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mobile-menu-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .mobile-menu-section .folder-select.full-width {
     width: 100%;
-    flex: none;
-    padding-top: 8px;
-    border-top: 1px solid var(--border-light);
+    max-width: none;
   }
 
-  .header-meta .note-tags-row {
-    min-width: 0;
+  .mobile-menu-divider {
+    height: 1px;
+    background: var(--border-light);
+    margin: 4px 0;
+  }
+
+  .mobile-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mobile-menu-action {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .mobile-menu-action--danger {
+    color: var(--danger);
   }
 
   .tag-input {
@@ -1204,5 +1428,15 @@ const formatDate = (date) => {
   .btn-page-mode {
     padding: 8px;
   }
+}
+
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
 }
 </style>

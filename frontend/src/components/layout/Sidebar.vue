@@ -118,6 +118,7 @@
           :title="tagsExpanded ? 'Свернуть' : 'Развернуть'"
       >
         <ChevronDown :size="14" class="chevron" :class="{ 'chevron--collapsed': !tagsExpanded }" />
+        <Tag :size="14" class="section-icon" />
         <span>ТЕГИ</span>
         <span class="section-count" v-if="allTags.length">{{ allTags.length }}</span>
       </button>
@@ -142,15 +143,16 @@
       </div>
     </div>
 
-    <div class="sidebar-section" v-if="!uiStore.sidebarCollapsed">
-      <div class="section-header">
+    <div class="sidebar-section sidebar-folders" v-if="!uiStore.sidebarCollapsed">
+      <div class="section-header section-header--with-icon">
+        <Folder :size="14" class="section-icon" />
         <span>ПАПКИ</span>
         <button
-            class="btn btn-icon-sm btn-ghost"
+            class="btn btn-icon-sm btn-ghost section-header-btn"
             @click="openFolderModal"
             title="Создать папку"
         >
-          <Plus :size="16" />
+          <Plus :size="14" />
         </button>
       </div>
 
@@ -198,6 +200,7 @@ import {
   Star,
   Pin,
   Tag,
+  Folder,
   CheckSquare,
   Plus,
   Calendar,
@@ -407,17 +410,18 @@ const closeSidebarOnMobile = () => {
 
 .sidebar-section {
   overflow-y: auto;
-  padding: 6px 8px 10px;
+  padding: 10px 10px 12px;
 }
 
 .sidebar-section.sidebar-notes-list {
   flex: 0 0 auto;
   max-height: 200px;
-  padding-bottom: 4px;
+  padding-bottom: 12px;
+  margin-bottom: 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
-.sidebar-section:not(.sidebar-notes-list):not(.sidebar-tags) {
+.sidebar-section:not(.sidebar-notes-list):not(.sidebar-tags):not(.sidebar-folders) {
   flex: 1;
 }
 
@@ -425,8 +429,14 @@ const closeSidebarOnMobile = () => {
   flex: 0 0 auto;
   max-height: 180px;
   overflow-y: auto;
-  padding-bottom: 4px;
+  padding-bottom: 12px;
+  margin-bottom: 0;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.sidebar-section.sidebar-folders {
+  flex: 1;
+  padding-top: 12px;
 }
 
 .tags-list {
@@ -474,28 +484,42 @@ const closeSidebarOnMobile = () => {
 }
 
 .notes-list-block {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .notes-list-block:last-child {
   margin-bottom: 0;
 }
 
-.notes-list-title {
+.notes-list-title,
+.section-toggle,
+.section-header {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 6px 6px;
-  font-size: 10px;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-tertiary);
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  min-height: 36px;
+  box-sizing: border-box;
 }
 
-.notes-list-title svg {
+.notes-list-title svg,
+.section-icon {
   flex-shrink: 0;
   opacity: 0.9;
+}
+
+.section-header--with-icon {
+  width: 100%;
+}
+
+.section-header-btn {
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .notes-list-title--toggle {
@@ -552,37 +576,19 @@ const closeSidebarOnMobile = () => {
   white-space: nowrap;
 }
 
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 6px 6px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--text-tertiary);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .section-toggle {
   width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 6px;
   border: none;
   background: transparent;
-  color: var(--text-tertiary);
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   transition: var(--transition);
+  text-align: left;
+  border-radius: var(--radius-sm);
 }
 
 .section-toggle:hover {
   color: var(--text-secondary);
+  background: var(--surface-raised);
 }
 
 .section-count {
@@ -596,6 +602,11 @@ const closeSidebarOnMobile = () => {
   color: var(--text-tertiary);
   letter-spacing: normal;
   text-transform: none;
+  flex-shrink: 0;
+}
+
+.folders-tree {
+  margin-top: 4px;
 }
 
 .folders-tree {
@@ -660,6 +671,7 @@ const closeSidebarOnMobile = () => {
     left: 0;
     top: 0;
     z-index: 100;
+    width: min(300px, 85vw);
     transform: translateX(-100%);
     transition: transform 0.3s var(--ease);
     padding-left: var(--safe-left);

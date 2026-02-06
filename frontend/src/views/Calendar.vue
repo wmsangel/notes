@@ -9,24 +9,45 @@
       <div class="calendar-card card">
         <h2 class="section-title">Добавить событие</h2>
         <div class="form-grid">
-          <input v-model="form.title" class="input" type="text" placeholder="Название" />
-          <input v-model="form.start_at" class="input" type="datetime-local" />
-          <input v-model="form.end_at" class="input" type="datetime-local" />
-          <select v-model="form.frequency" class="input">
-            <option value="none">Без повторения</option>
-            <option value="weekly">Каждую неделю</option>
-            <option value="monthly">Каждый месяц</option>
-            <option value="yearly">Каждый год</option>
-          </select>
-          <input
-            v-model.number="form.interval_value"
-            class="input"
-            type="number"
-            min="1"
-            :disabled="form.frequency === 'none'"
-            placeholder="Интервал"
-          />
-          <input v-model="form.description" class="input" type="text" placeholder="Описание (опционально)" />
+          <label class="field-block">
+            <span class="field-label">Название события</span>
+            <input v-model="form.title" class="input" type="text" placeholder="Например: Карманные деньги Саше" />
+          </label>
+          <label class="field-block">
+            <span class="field-label">Начало (дата и время)</span>
+            <input v-model="form.start_at" class="input" type="datetime-local" />
+          </label>
+          <label class="field-block">
+            <span class="field-label">Конец (дата и время)</span>
+            <input v-model="form.end_at" class="input" type="datetime-local" />
+            <span class="field-hint">Необязательно. Для разового события можно не указывать.</span>
+          </label>
+          <label class="field-block">
+            <span class="field-label">Повторение</span>
+            <select v-model="form.frequency" class="input">
+              <option value="none">Без повторения</option>
+              <option value="daily">Каждый день</option>
+              <option value="weekdays">Каждый будний день (Пн–Пт)</option>
+              <option value="weekly">Каждую неделю</option>
+              <option value="monthly">Каждый месяц</option>
+              <option value="yearly">Каждый год</option>
+            </select>
+          </label>
+          <label class="field-block" v-if="form.frequency !== 'none' && form.frequency !== 'weekdays'">
+            <span class="field-label">Каждые N</span>
+            <input
+              v-model.number="form.interval_value"
+              class="input"
+              type="number"
+              min="1"
+              :placeholder="intervalPlaceholder"
+            />
+            <span class="field-hint">{{ intervalHint }}</span>
+          </label>
+          <label class="field-block field-block--wide">
+            <span class="field-label">Описание</span>
+            <input v-model="form.description" class="input" type="text" placeholder="Описание (опционально)" />
+          </label>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" @click="saveEvent" :disabled="saving">
@@ -70,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import { calendarApi } from '@/services/api/calendar'
 import { useUIStore } from '@/stores/ui'
@@ -190,8 +211,29 @@ const formatDateTime = (val) => {
   })
 }
 
+const intervalPlaceholder = computed(() => {
+  const f = form.value.frequency
+  if (f === 'daily') return '1'
+  if (f === 'weekly') return '1'
+  if (f === 'monthly') return '1'
+  if (f === 'yearly') return '1'
+  return '1'
+})
+
+const intervalHint = computed(() => {
+  const f = form.value.frequency
+  const n = form.value.interval_value || 1
+  if (f === 'daily') return n === 1 ? 'Раз в день' : `каждые ${n} дня`
+  if (f === 'weekly') return n === 1 ? 'Раз в неделю' : `каждые ${n} недели`
+  if (f === 'monthly') return n === 1 ? 'Раз в месяц' : `каждые ${n} месяца`
+  if (f === 'yearly') return n === 1 ? 'Раз в год' : `каждые ${n} года`
+  return ''
+})
+
 const repeatLabel = (event) => {
   const interval = event.interval_value || 1
+  if (event.frequency === 'daily') return interval === 1 ? 'каждый день' : `каждые ${interval} дня`
+  if (event.frequency === 'weekdays') return 'каждый будний день'
   if (event.frequency === 'weekly') return interval === 1 ? 'каждую неделю' : `каждые ${interval} недели`
   if (event.frequency === 'monthly') return interval === 1 ? 'каждый месяц' : `каждые ${interval} месяца`
   if (event.frequency === 'yearly') return interval === 1 ? 'каждый год' : `каждые ${interval} года`
@@ -242,7 +284,29 @@ onMounted(loadEvents)
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 14px 16px;
+}
+
+.field-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.field-block--wide {
+  grid-column: 1 / -1;
+}
+
+.field-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.field-hint {
+  font-size: 11px;
+  color: var(--text-tertiary);
+  margin-top: 2px;
 }
 
 .form-actions {

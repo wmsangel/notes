@@ -215,6 +215,13 @@ const onDueDateChange = (e) => {
   justify-content: center;
   user-select: none;
   flex-shrink: 0;
+  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.drag-handle:hover {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
 }
 
 .drag-handle:active {
@@ -262,6 +269,7 @@ const onDueDateChange = (e) => {
   color: var(--text);
   line-height: 1.5;
   word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .todo-item.completed .item-title {
@@ -349,5 +357,30 @@ const onDueDateChange = (e) => {
 
 .priority-select:hover {
   opacity: 0.8;
+}
+
+/* Мобилка: действия переносим на вторую строку, чтобы заголовок не сжимался в столбик букв */
+@media (max-width: 768px) {
+  .item-main {
+    flex-wrap: wrap;
+  }
+
+  .item-content {
+    flex: 1 1 0%;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .item-actions {
+    flex-basis: 100%;
+    width: 100%;
+    order: 10;
+    opacity: 1;
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid var(--border-light);
+    flex-wrap: wrap;
+    gap: 8px;
+  }
 }
 </style>
