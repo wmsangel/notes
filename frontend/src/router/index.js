@@ -57,12 +57,6 @@ const routes = [
         meta: { title: 'Список задач' }
     },
     {
-        path: '/search',
-        name: 'Search',
-        component: () => import('@/views/Search.vue'),
-        meta: { title: 'Поиск' }
-    },
-    {
         path: '/settings',
         name: 'Settings',
         component: () => import('@/views/Settings.vue'),

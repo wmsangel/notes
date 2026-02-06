@@ -208,6 +208,9 @@
               <FileText :size="16" />
               <div class="note-item-modal-text">
                 <span class="note-item-modal-title">{{ note.title }}</span>
+                <span v-if="note.folder_id" class="note-item-modal-folder">
+                  {{ getNoteFolderPath(note.folder_id) }}
+                </span>
               </div>
             </div>
             <div v-if="!filteredNotes.length" class="no-notes">Заметки не найдены</div>
@@ -241,6 +244,9 @@
               <FileText :size="16" />
               <div class="note-item-modal-text">
                 <span class="note-item-modal-title">{{ note.title }}</span>
+                <span v-if="note.folder_id" class="note-item-modal-folder">
+                  {{ getNoteFolderPath(note.folder_id) }}
+                </span>
               </div>
             </div>
             <div v-if="!filteredListNotes.length" class="no-notes">Заметки не найдены</div>
@@ -258,8 +264,8 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import draggable from 'vuedraggable'
-import { useTodosStore } from '@/stores/todos'
 import { useNotesStore } from '@/stores/notes'
+import { useFoldersStore } from '@/stores/folders'
 import { useUIStore } from '@/stores/ui'
 import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
@@ -268,6 +274,7 @@ import { ListTodo, Loader, Plus, ChevronRight, ChevronDown, FileText, Link2 } fr
 
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
+const foldersStore = useFoldersStore()
 const uiStore = useUIStore()
 
 const loading = ref(true)
@@ -297,6 +304,13 @@ const filteredListNotes = computed(() => {
   return availableNotes.value.filter(n => n.title.toLowerCase().includes(q))
 })
 
+const getNoteFolderPath = (folderId) => {
+  if (!folderId) return ''
+  const path = foldersStore.getFolderPath(folderId)
+  if (!path.length) return ''
+  return path.map(f => f.name).join(' / ')
+}
+
 const initListState = (list) => {
   const pending = (list.items || []).filter(i => !i.is_completed)
   const completed = (list.items || []).filter(i => i.is_completed)
@@ -323,6 +337,9 @@ const loadOverview = async () => {
     }
     await notesStore.fetchNotes()
     availableNotes.value = notesStore.notes
+    if (!foldersStore.folders.length) {
+      await foldersStore.fetchFolders()
+    }
   } finally {
     loading.value = false
   }
@@ -787,6 +804,14 @@ onMounted(loadOverview)
 .note-item-modal-title {
   font-size: 14px;
   font-weight: 500;
+}
+
+.note-item-modal-folder {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .no-notes {
