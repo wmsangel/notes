@@ -62,7 +62,7 @@
           <div class="section-header">
             <h2 class="section-title">
               <Calendar :size="20" />
-              Календарь (7 дней)
+              Календарь (3 дня)
             </h2>
             <router-link to="/calendar" class="btn btn-sm btn-ghost">
               Открыть
@@ -358,7 +358,7 @@ const calendarWeek = computed(() => {
   const dayKey = (d) =>
     `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 
-  const days = Array.from({ length: 7 }, (_, i) => {
+  const days = Array.from({ length: 3 }, (_, i) => {
     const d = new Date(start)
     d.setDate(start.getDate() + i)
     const key = dayKey(d)
@@ -787,11 +787,9 @@ const formatEventTime = (val) => {
 }
 
 .calendar-event {
-  display: grid;
-  grid-template-columns: 22px 1fr;
-  grid-auto-rows: auto;
-  gap: 6px 8px;
-  align-items: start;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
@@ -809,6 +807,7 @@ const formatEventTime = (val) => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .calendar-event-check:hover {
@@ -824,22 +823,21 @@ const formatEventTime = (val) => {
 }
 
 .calendar-event-time {
-  grid-column: 2;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-tertiary);
+  flex-shrink: 0;
+  min-width: 48px;
 }
 
 .calendar-event-title {
-  grid-column: 2;
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
   min-width: 0;
   overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .calendar-event.is-completed .calendar-event-title {

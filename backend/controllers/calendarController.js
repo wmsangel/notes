@@ -14,7 +14,7 @@ export const calendarController = {
 
     async getUpcoming(req, res) {
         try {
-            const days = parseInt(req.query.days, 10) || 7
+            const days = parseInt(req.query.days, 10) || 3
             const events = await calendarService.getUpcoming(days)
             res.json(events)
         } catch (error) {
