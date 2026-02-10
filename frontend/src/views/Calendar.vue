@@ -529,12 +529,13 @@ onMounted(() => {
   background: var(--bg);
   border: 1px solid var(--border-light);
   border-radius: var(--radius-lg);
-  padding: 10px 12px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   min-width: 0;
   overflow: hidden;
+  min-height: 160px;
 }
 
 .calendar-day.today {
@@ -550,7 +551,7 @@ onMounted(() => {
 }
 
 .calendar-day-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   text-transform: capitalize;
@@ -569,8 +570,8 @@ onMounted(() => {
 .calendar-event {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
@@ -595,15 +596,15 @@ onMounted(() => {
 }
 
 .calendar-event-time {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   color: var(--text-tertiary);
   flex-shrink: 0;
-  min-width: 48px;
+  min-width: 56px;
 }
 
 .calendar-event-title {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--text);
   min-width: 0;
@@ -633,11 +634,11 @@ onMounted(() => {
 }
 
 .calendar-event-empty {
-  padding: 6px 10px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
   border: 1px dashed var(--border-subtle);
   color: var(--text-tertiary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .today-badge {
