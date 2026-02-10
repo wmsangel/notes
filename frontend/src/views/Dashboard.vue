@@ -788,8 +788,9 @@ const formatEventTime = (val) => {
 
 .calendar-event {
   display: grid;
-  grid-template-columns: 22px 52px 1fr;
-  gap: 8px;
+  grid-template-columns: 22px 1fr;
+  grid-auto-rows: auto;
+  gap: 6px 8px;
   align-items: start;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
@@ -823,19 +824,21 @@ const formatEventTime = (val) => {
 }
 
 .calendar-event-time {
+  grid-column: 2;
   font-size: 11px;
   font-weight: 700;
   color: var(--text-tertiary);
 }
 
 .calendar-event-title {
+  grid-column: 2;
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
   min-width: 0;
   overflow: hidden;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
 }
 
