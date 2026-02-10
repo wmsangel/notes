@@ -753,6 +753,8 @@ const formatEventTime = (val) => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .calendar-day.today {
@@ -772,6 +774,10 @@ const formatEventTime = (val) => {
   font-weight: 700;
   color: var(--text);
   text-transform: capitalize;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .calendar-day-events {
@@ -782,13 +788,15 @@ const formatEventTime = (val) => {
 
 .calendar-event {
   display: grid;
-  grid-template-columns: 24px 58px 1fr;
+  grid-template-columns: 22px 52px 1fr;
   gap: 8px;
   align-items: start;
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
+  width: 100%;
+  min-width: 0;
 }
 
 .calendar-event-check {
@@ -824,6 +832,11 @@ const formatEventTime = (val) => {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
+  min-width: 0;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .calendar-event.is-completed .calendar-event-title {
