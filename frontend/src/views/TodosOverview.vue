@@ -102,6 +102,10 @@
             </draggable>
           </div>
 
+          <div v-else class="group-empty">
+            <span>Нет активных задач</span>
+          </div>
+
           <div class="group-add group-add--footer">
             <input
               :ref="el => setAddInputRef(list.id, el)"
@@ -112,10 +116,6 @@
               @keydown.enter="addItem(list)"
             />
             <button class="btn btn-primary" @click="addItem(list)">Добавить</button>
-          </div>
-
-          <div v-else class="group-empty">
-            <span>Нет активных задач</span>
           </div>
 
         </section>
