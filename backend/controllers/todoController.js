@@ -14,7 +14,8 @@ export const todoController = {
 
     async getOverview(req, res) {
         try {
-            const data = await todoService.getOverview()
+            const includeCompleted = req.query.include_completed === '1' || req.query.include_completed === 'true'
+            const data = await todoService.getOverview({ includeCompleted })
             res.json(data)
         } catch (error) {
             console.error('Error fetching todo overview:', error)

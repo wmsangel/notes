@@ -29,44 +29,21 @@
         >
           <header class="group-header">
             <div class="group-title-block">
-              <h2 class="group-title" :style="{ color: list.color || undefined }">
+              <router-link
+                class="group-title-link"
+                :to="`/todos/${list.id}`"
+                :style="{ color: list.color || undefined }"
+              >
                 {{ list.title }}
-              </h2>
+              </router-link>
               <div v-if="list.folder_name" class="group-folder">
                 {{ list.folder_name }}
               </div>
             </div>
-            <router-link :to="`/todos/${list.id}`" class="group-link">
-              Открыть список
-              <ChevronRight :size="16" />
-            </router-link>
+            <button class="btn btn-icon-sm btn-ghost add-inline-btn" @click="focusAddInput(list.id)" title="Добавить задачу">
+              <Plus :size="16" />
+            </button>
           </header>
-
-          <div class="group-note-link">
-            <span class="group-note-label">Заметка:</span>
-            <router-link
-              v-if="list.linked_note"
-              :to="`/notes/${list.linked_note.id}`"
-              class="group-note-chip"
-              :style="list.linked_note.color ? { borderLeft: `1px solid ${list.linked_note.color}` } : null"
-            >
-              {{ list.linked_note.title || 'Без названия' }}
-            </router-link>
-            <span v-else class="group-note-empty">Нет привязанной заметки</span>
-            <button class="btn btn-sm btn-ghost" @click="openListLinkModal(list.id)">Привязать</button>
-            <button v-if="list.linked_note" class="btn btn-sm btn-ghost" @click="unlinkListNote(list.id)">Убрать</button>
-          </div>
-
-          <div class="group-add">
-            <input
-              class="input"
-              type="text"
-              :placeholder="`Добавить задачу в «${list.title}»`"
-              v-model="newItemTitles[list.id]"
-              @keydown.enter="addItem(list)"
-            />
-            <button class="btn btn-primary" @click="addItem(list)">Добавить</button>
-          </div>
 
           <div v-if="listStates[list.id]?.pending?.length" class="group-items">
             <draggable
@@ -123,6 +100,18 @@
                 </div>
               </template>
             </draggable>
+          </div>
+
+          <div class="group-add group-add--footer">
+            <input
+              :ref="el => setAddInputRef(list.id, el)"
+              class="input"
+              type="text"
+              :placeholder="`Добавить задачу в «${list.title}»`"
+              v-model="newItemTitles[list.id]"
+              @keydown.enter="addItem(list)"
+            />
+            <button class="btn btn-primary" @click="addItem(list)">Добавить</button>
           </div>
 
           <div v-else class="group-empty">
@@ -217,7 +206,7 @@ import { useUIStore } from '@/stores/ui'
 import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
-import { ListTodo, Loader, Plus, ChevronRight, FileText, Link2 } from 'lucide-vue-next'
+import { ListTodo, Loader, Plus, FileText, Link2 } from 'lucide-vue-next'
 
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
@@ -229,6 +218,7 @@ const lists = ref([])
 const listStates = reactive({})
 const itemLinks = reactive({})
 const newItemTitles = reactive({})
+const addInputRefs = reactive({})
 
 const showItemLinkModal = ref(false)
 const showListLinkModal = ref(false)
@@ -273,19 +263,9 @@ const refreshListItems = (listId) => {
 const loadOverview = async () => {
   loading.value = true
   try {
-    const data = await todosApi.getOverview()
+    const data = await todosApi.getOverview({ include_completed: 0 })
     lists.value = data
     lists.value.forEach(list => initListState(list))
-    for (const list of lists.value) {
-      for (const item of list.items || []) {
-        await loadLinkedNotes(item.id)
-      }
-    }
-    await notesStore.fetchNotes()
-    availableNotes.value = notesStore.notes
-    if (!foldersStore.folders.length) {
-      await foldersStore.fetchFolders()
-    }
   } finally {
     loading.value = false
   }
@@ -309,6 +289,18 @@ const addItem = async (list) => {
     await onReorder(list.id)
   } catch (e) {
     uiStore.showError('Ошибка добавления задачи')
+  }
+}
+
+const setAddInputRef = (listId, el) => {
+  if (!el) return
+  addInputRefs[listId] = el
+}
+
+const focusAddInput = (listId) => {
+  const el = addInputRefs[listId]
+  if (el && typeof el.focus === 'function') {
+    el.focus()
   }
 }
 
@@ -372,11 +364,26 @@ const onReorder = async (listId) => {
 }
 
 
+const ensureNotesLoaded = async () => {
+  if (availableNotes.value.length) return
+  try {
+    await notesStore.fetchNotes()
+    availableNotes.value = notesStore.notes
+    if (!foldersStore.folders.length) {
+      await foldersStore.fetchFolders()
+    }
+  } catch (e) {
+    uiStore.showError('Ошибка загрузки заметок')
+  }
+}
+
 const openItemLinkModal = (listId, itemId) => {
   selectedItemId.value = itemId
   selectedListId.value = listId
   showItemLinkModal.value = true
   noteSearchQuery.value = ''
+  ensureNotesLoaded()
+  loadLinkedNotes(itemId)
 }
 
 const linkNoteToItem = async (noteId) => {
@@ -393,6 +400,7 @@ const openListLinkModal = (listId) => {
   selectedListId.value = listId
   showListLinkModal.value = true
   listNoteSearchQuery.value = ''
+  ensureNotesLoaded()
 }
 
 const linkNoteToList = async (noteId) => {
@@ -510,6 +518,14 @@ onMounted(loadOverview)
   border-bottom: 1px solid var(--border-subtle);
 }
 
+.add-inline-btn {
+  color: var(--text-tertiary);
+}
+
+.add-inline-btn:hover {
+  color: var(--primary);
+}
+
 .group-title-block {
   display: flex;
   flex-direction: column;
@@ -520,6 +536,18 @@ onMounted(loadOverview)
   font-size: 16px;
   font-weight: 600;
   margin: 0;
+}
+
+.group-title-link {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  text-decoration: none;
+  color: var(--text);
+}
+
+.group-title-link:hover {
+  color: var(--primary);
 }
 
 .group-folder {
@@ -540,45 +568,16 @@ onMounted(loadOverview)
   color: var(--primary);
 }
 
-.group-note-link {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px;
-  padding: 10px 16px;
-  border-bottom: 1px dashed var(--border-subtle);
-}
-
-.group-note-label {
-  font-size: 11px;
-  color: var(--text-tertiary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 700;
-}
-
-.group-note-chip {
-  display: inline-flex;
-  align-items: center;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-subtle);
-  color: var(--text);
-  text-decoration: none;
-  font-size: 12px;
-}
-
-.group-note-empty {
-  font-size: 12px;
-  color: var(--text-tertiary);
-}
-
 .group-add {
   display: flex;
   gap: 8px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--border-subtle);
+}
+
+.group-add--footer {
+  border-top: 1px dashed var(--border-subtle);
+  border-bottom: none;
 }
 
 .group-items {

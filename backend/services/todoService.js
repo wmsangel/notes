@@ -97,7 +97,8 @@ export const todoService = {
         }
     },
 
-    async getOverview() {
+    async getOverview(options = {}) {
+        const includeCompleted = options.includeCompleted === true
         await this.pruneOldCompleted()
         const [rows] = await db.query(
             `SELECT 
@@ -117,6 +118,7 @@ export const todoService = {
                 ti.due_date
              FROM todo_lists tl
              LEFT JOIN todo_items ti ON tl.id = ti.list_id
+               AND (${includeCompleted ? '1=1' : 'ti.is_completed = 0'})
              LEFT JOIN notes ln ON tl.note_id = ln.id
              LEFT JOIN folders f ON tl.folder_id = f.id
              ORDER BY tl.title ASC, ti.position ASC, ti.created_at ASC`

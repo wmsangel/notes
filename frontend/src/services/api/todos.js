@@ -56,8 +56,8 @@ export const reorderItems = async (list_id, order) => {
     return response.data
 }
 
-export const getOverview = async () => {
-    const response = await api.get('/todos/overview')
+export const getOverview = async (params = {}) => {
+    const response = await api.get('/todos/overview', { params })
     return response.data
 }
 
