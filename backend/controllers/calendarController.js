@@ -63,5 +63,24 @@ export const calendarController = {
             }
             res.status(500).json({ error: error.message })
         }
+    },
+
+    async setOccurrenceCompletion(req, res) {
+        try {
+            const { event_id, occurrence_date, completed } = req.body || {}
+            if (!event_id || !occurrence_date) {
+                res.status(400).json({ error: 'event_id and occurrence_date are required' })
+                return
+            }
+            const result = await calendarService.setOccurrenceCompletion(event_id, occurrence_date, !!completed)
+            res.json(result)
+        } catch (error) {
+            console.error('Error updating calendar occurrence:', error)
+            if (error.code === 'ER_MIGRATION_NEEDED') {
+                res.status(409).json({ error: 'Calendar migrations not applied' })
+                return
+            }
+            res.status(500).json({ error: error.message })
+        }
     }
 }

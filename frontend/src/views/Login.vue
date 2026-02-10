@@ -1,6 +1,10 @@
 <template>
   <div class="login-page">
     <div class="login-card card">
+      <div class="login-brand">
+        <img src="/logo.svg" alt="IZN Notes" class="login-logo" />
+        <div class="login-brand-text">Notes/Todo</div>
+      </div>
       <h1 class="login-title">Вход</h1>
       <p class="login-subtitle">Введите пароль для доступа</p>
 
@@ -63,6 +67,28 @@ const submit = async () => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.login-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.login-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  box-shadow: var(--shadow-xs);
+}
+
+.login-brand-text {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
 }
 
 .login-title {

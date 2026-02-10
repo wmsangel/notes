@@ -69,19 +69,43 @@
               <ArrowRight :size="16" />
             </router-link>
           </div>
-          <div class="notes-list">
+          <div class="calendar-week">
             <div
-              v-for="event in stats.calendar_upcoming"
-              :key="`${event.source_event_id}-${event.start_at}`"
-              class="note-item calendar-item"
-              :class="{ today: event.is_today }"
+              v-for="day in calendarWeek"
+              :key="day.key"
+              class="calendar-day"
+              :class="{ today: day.isToday }"
             >
-              <div class="note-info">
-                <div class="note-title">{{ event.title }}</div>
-                <div class="note-meta">
-                  {{ formatEventDate(event.start_at) }}
-                  <span v-if="event.is_today" class="today-badge">Сегодня</span>
+              <div class="calendar-day-header">
+                <div class="calendar-day-title">{{ formatDayLabel(day.date) }}</div>
+                <span v-if="day.isToday" class="today-badge">Сегодня</span>
+              </div>
+              <div class="calendar-day-events">
+                <div
+                  v-for="event in day.events"
+                  :key="`${event.source_event_id}-${event.start_at}`"
+                  class="calendar-event"
+                  :class="{
+                    'is-completed': event.is_completed,
+                    'is-overdue': event.is_overdue
+                  }"
+                >
+                  <button
+                    class="calendar-event-check"
+                    type="button"
+                    @click="toggleCalendarDone(event)"
+                    :title="event.is_completed ? 'Снять отметку' : 'Отметить выполненным'"
+                  >
+                    <CheckCircle v-if="event.is_completed" :size="16" />
+                    <Circle v-else :size="16" />
+                  </button>
+                  <div class="calendar-event-time">{{ formatEventTime(event.start_at) }}</div>
+                  <div class="calendar-event-title">
+                    {{ event.title }}
+                    <span v-if="event.is_overdue" class="overdue-badge">Просрочено</span>
+                  </div>
                 </div>
+                <div v-if="!day.events.length" class="calendar-event-empty">Нет событий</div>
               </div>
             </div>
           </div>
@@ -287,6 +311,7 @@ import { useDashboardStore } from '@/stores/dashboard'
 import { useTodosStore } from '@/stores/todos'
 import { useUIStore } from '@/stores/ui'
 import { dashboardApi } from '@/services/api/dashboard'
+import { calendarApi } from '@/services/api/calendar'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import ProjectLinkModal from '@/components/features/ProjectLinkModal.vue'
 import {
@@ -325,6 +350,43 @@ const rootFoldersForDashboard = computed(() => {
   return list.filter((f) => f.parent_id == null)
 })
 
+const calendarWeek = computed(() => {
+  const events = Array.isArray(stats.value?.calendar_upcoming) ? stats.value.calendar_upcoming : []
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+
+  const dayKey = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    const key = dayKey(d)
+    return { key, date: d, isToday: i === 0, events: [] }
+  })
+
+  const map = new Map(days.map((d) => [d.key, d]))
+  for (const event of events) {
+    const key = event.display_date
+      ? event.display_date
+      : (() => {
+          if (!event?.start_at) return null
+          const d = new Date(event.start_at)
+          if (Number.isNaN(d.getTime())) return null
+          return dayKey(d)
+        })()
+    if (!key) continue
+    const bucket = map.get(key)
+    if (bucket) bucket.events.push(event)
+  }
+
+  for (const day of days) {
+    day.events.sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+  }
+
+  return days
+})
+
 onMounted(() => {
   dashboardStore.fetchStats()
 })
@@ -345,6 +407,20 @@ const toggleTask = async (task) => {
     setTimeout(() => {
       togglingTasks[task.id] = false
     }, 300)
+  }
+}
+
+const toggleCalendarDone = async (event) => {
+  const occurrenceDate = event.occurrence_date || event.display_date
+  if (!event?.source_event_id || !occurrenceDate) return
+  const next = !event.is_completed
+  event.is_completed = next
+  try {
+    await calendarApi.setOccurrenceComplete(event.source_event_id, occurrenceDate, next)
+    await dashboardStore.fetchStats()
+  } catch (error) {
+    event.is_completed = !next
+    uiStore.showError('Ошибка обновления события')
   }
 }
 
@@ -373,6 +449,19 @@ const formatEventDate = (val) => {
   const date = d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })
   const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
   return `${date} • ${time}`
+}
+
+const formatDayLabel = (date) => {
+  if (!date) return ''
+  return date.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+const formatEventTime = (val) => {
+  if (!val) return ''
+  if (typeof val === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(val.trim())) return 'Весь день'
+  const d = new Date(val)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
 </script>
 
@@ -649,12 +738,112 @@ const formatEventDate = (val) => {
   color: var(--primary);
 }
 
-.calendar-item {
-  cursor: default;
+.calendar-week {
+  padding: 12px 12px 14px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
 }
 
-.calendar-item.today {
-  background: var(--primary-soft);
+.calendar-day {
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calendar-day.today {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary-soft);
+}
+
+.calendar-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar-day-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.calendar-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-event {
+  display: grid;
+  grid-template-columns: 24px 58px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.calendar-event-check {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.calendar-event-check:hover {
+  color: var(--primary);
+}
+
+.calendar-event-empty {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.calendar-event-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.calendar-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calendar-event.is-completed .calendar-event-title {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.calendar-event.is-overdue {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.overdue-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .today-badge {
@@ -665,6 +854,23 @@ const formatEventDate = (val) => {
   color: #fff;
   font-size: 10px;
   font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .calendar-week {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  .calendar-week::-webkit-scrollbar {
+    height: 6px;
+  }
+  .calendar-week::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
 }
 
 .project-links {

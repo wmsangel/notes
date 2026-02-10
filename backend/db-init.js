@@ -25,6 +25,7 @@ const MIGRATIONS = [
   'migrate-todo-lists-add-note-link.sql',
   'migrate-calendar-events.sql',
   'migrate-calendar-frequency-extend.sql',
+  'migrate-calendar-occurrences.sql',
   'migrate-dashboard-links.sql',
   'migrate-todo-items-add-show-on-dashboard.sql',
 ];

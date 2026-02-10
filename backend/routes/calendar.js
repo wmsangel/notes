@@ -9,5 +9,6 @@ router.get('/upcoming', calendarController.getUpcoming)
 router.post('/events', calendarController.create)
 router.put('/events/:id', calendarController.update)
 router.delete('/events/:id', calendarController.delete)
+router.post('/occurrences/complete', calendarController.setOccurrenceCompletion)
 
 export default router

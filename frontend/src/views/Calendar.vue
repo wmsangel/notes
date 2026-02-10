@@ -6,54 +6,54 @@
         <p class="page-subtitle">События и регулярные платежи</p>
       </div>
 
-      <div class="calendar-card card">
-        <h2 class="section-title">Добавить событие</h2>
-        <div class="form-grid">
-          <label class="field-block">
-            <span class="field-label">Название события</span>
-            <input v-model="form.title" class="input" type="text" placeholder="Например: Карманные деньги Саше" />
-          </label>
-          <label class="field-block">
-            <span class="field-label">Начало (дата и время)</span>
-            <input v-model="form.start_at" class="input" type="datetime-local" />
-          </label>
-          <label class="field-block">
-            <span class="field-label">Конец (дата и время)</span>
-            <input v-model="form.end_at" class="input" type="datetime-local" />
-            <span class="field-hint">Необязательно. Для разового события можно не указывать.</span>
-          </label>
-          <label class="field-block">
-            <span class="field-label">Повторение</span>
-            <select v-model="form.frequency" class="input">
-              <option value="none">Без повторения</option>
-              <option value="daily">Каждый день</option>
-              <option value="weekdays">Каждый будний день (Пн–Пт)</option>
-              <option value="weekly">Каждую неделю</option>
-              <option value="monthly">Каждый месяц</option>
-              <option value="yearly">Каждый год</option>
-            </select>
-          </label>
-          <label class="field-block" v-if="form.frequency !== 'none' && form.frequency !== 'weekdays'">
-            <span class="field-label">Каждые N</span>
-            <input
-              v-model.number="form.interval_value"
-              class="input"
-              type="number"
-              min="1"
-              :placeholder="intervalPlaceholder"
-            />
-            <span class="field-hint">{{ intervalHint }}</span>
-          </label>
-          <label class="field-block field-block--wide">
-            <span class="field-label">Описание</span>
-            <input v-model="form.description" class="input" type="text" placeholder="Описание (опционально)" />
-          </label>
-        </div>
-        <div class="form-actions">
-          <button class="btn btn-primary" @click="saveEvent" :disabled="saving">
-            {{ editingId ? 'Сохранить' : 'Добавить' }}
+      <div class="calendar-week-card card">
+        <div class="section-header">
+          <h2 class="section-title">Ближайшая неделя</h2>
+          <button class="btn btn-sm btn-primary" @click="openCreateModal">
+            Добавить событие
           </button>
-          <button v-if="editingId" class="btn btn-secondary" @click="resetForm">Отмена</button>
+        </div>
+
+        <div v-if="upcomingLoading" class="loading-state">Загрузка...</div>
+        <div v-else class="calendar-week">
+          <div
+            v-for="day in calendarWeek"
+            :key="day.key"
+            class="calendar-day"
+            :class="{ today: day.isToday }"
+          >
+            <div class="calendar-day-header">
+              <div class="calendar-day-title">{{ formatDayLabel(day.date) }}</div>
+              <span v-if="day.isToday" class="today-badge">Сегодня</span>
+            </div>
+            <div class="calendar-day-events">
+              <div
+                v-for="event in day.events"
+                :key="`${event.source_event_id}-${event.start_at}`"
+                class="calendar-event"
+                :class="{
+                  'is-completed': event.is_completed,
+                  'is-overdue': event.is_overdue
+                }"
+              >
+                <button
+                  class="calendar-event-check"
+                  type="button"
+                  @click="toggleCalendarDone(event)"
+                  :title="event.is_completed ? 'Снять отметку' : 'Отметить выполненным'"
+                >
+                  <CheckCircle v-if="event.is_completed" :size="16" />
+                  <Circle v-else :size="16" />
+                </button>
+                <div class="calendar-event-time">{{ formatEventTime(event.start_at) }}</div>
+                <div class="calendar-event-title">
+                  {{ event.title }}
+                  <span v-if="event.is_overdue" class="overdue-badge">Просрочено</span>
+                </div>
+              </div>
+              <div v-if="!day.events.length" class="calendar-event-empty">Нет событий</div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -86,6 +86,59 @@
           </div>
         </div>
       </div>
+
+      <div class="modal-overlay" v-if="showModal" @click.self="closeModal">
+        <div class="modal-card card">
+          <h2 class="section-title">{{ editingId ? 'Редактировать событие' : 'Добавить событие' }}</h2>
+          <div class="form-grid">
+            <label class="field-block">
+              <span class="field-label">Название события</span>
+              <input v-model="form.title" class="input" type="text" placeholder="Например: Карманные деньги Саше" />
+            </label>
+            <label class="field-block">
+              <span class="field-label">Начало (дата и время)</span>
+              <input v-model="form.start_at" class="input" type="datetime-local" />
+            </label>
+            <label class="field-block">
+              <span class="field-label">Конец (дата и время)</span>
+              <input v-model="form.end_at" class="input" type="datetime-local" />
+              <span class="field-hint">Необязательно. Для разового события можно не указывать.</span>
+            </label>
+            <label class="field-block">
+              <span class="field-label">Повторение</span>
+              <select v-model="form.frequency" class="input">
+                <option value="none">Без повторения</option>
+                <option value="daily">Каждый день</option>
+                <option value="weekdays">Каждый будний день (Пн–Пт)</option>
+                <option value="weekly">Каждую неделю</option>
+                <option value="monthly">Каждый месяц</option>
+                <option value="yearly">Каждый год</option>
+              </select>
+            </label>
+            <label class="field-block" v-if="form.frequency !== 'none' && form.frequency !== 'weekdays'">
+              <span class="field-label">Каждые N</span>
+              <input
+                v-model.number="form.interval_value"
+                class="input"
+                type="number"
+                min="1"
+                :placeholder="intervalPlaceholder"
+              />
+              <span class="field-hint">{{ intervalHint }}</span>
+            </label>
+            <label class="field-block field-block--wide">
+              <span class="field-label">Описание</span>
+              <input v-model="form.description" class="input" type="text" placeholder="Описание (опционально)" />
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="btn btn-primary" @click="saveEvent" :disabled="saving">
+              {{ editingId ? 'Сохранить' : 'Добавить' }}
+            </button>
+            <button class="btn btn-secondary" @click="closeModal">Отмена</button>
+          </div>
+        </div>
+      </div>
     </div>
   </MainLayout>
 </template>
@@ -95,12 +148,16 @@ import { ref, computed, onMounted } from 'vue'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import { calendarApi } from '@/services/api/calendar'
 import { useUIStore } from '@/stores/ui'
+import { CheckCircle, Circle } from 'lucide-vue-next'
 
 const uiStore = useUIStore()
 const events = ref([])
+const upcoming = ref([])
 const loading = ref(false)
+const upcomingLoading = ref(false)
 const saving = ref(false)
 const editingId = ref(null)
+const showModal = ref(false)
 
 const form = ref({
   title: '',
@@ -123,6 +180,18 @@ const loadEvents = async () => {
   }
 }
 
+const loadUpcoming = async () => {
+  upcomingLoading.value = true
+  try {
+    const res = await calendarApi.getUpcoming(7)
+    upcoming.value = Array.isArray(res.data) ? res.data : []
+  } catch (e) {
+    uiStore.showError('Ошибка загрузки календаря')
+  } finally {
+    upcomingLoading.value = false
+  }
+}
+
 const resetForm = () => {
   editingId.value = null
   form.value = {
@@ -133,6 +202,16 @@ const resetForm = () => {
     frequency: 'none',
     interval_value: 1
   }
+}
+
+const openCreateModal = () => {
+  resetForm()
+  showModal.value = true
+}
+
+const closeModal = () => {
+  showModal.value = false
+  resetForm()
 }
 
 const toDbDateTime = (val) => {
@@ -161,8 +240,8 @@ const saveEvent = async () => {
     } else {
       await calendarApi.create(payload)
     }
-    await loadEvents()
-    resetForm()
+    await Promise.all([loadEvents(), loadUpcoming()])
+    closeModal()
   } catch (e) {
     uiStore.showError('Ошибка сохранения события')
   } finally {
@@ -180,6 +259,7 @@ const startEdit = (event) => {
     frequency: event.frequency || 'none',
     interval_value: event.interval_value || 1
   }
+  showModal.value = true
 }
 
 const toInputDateTime = (val) => {
@@ -194,8 +274,23 @@ const removeEvent = async (id) => {
   try {
     await calendarApi.delete(id)
     events.value = events.value.filter(e => e.id !== id)
+    await loadUpcoming()
   } catch (e) {
     uiStore.showError('Ошибка удаления события')
+  }
+}
+
+const toggleCalendarDone = async (event) => {
+  const occurrenceDate = event.occurrence_date || event.display_date
+  if (!event?.source_event_id || !occurrenceDate) return
+  const next = !event.is_completed
+  event.is_completed = next
+  try {
+    await calendarApi.setOccurrenceComplete(event.source_event_id, occurrenceDate, next)
+    await loadUpcoming()
+  } catch (error) {
+    event.is_completed = !next
+    uiStore.showError('Ошибка обновления события')
   }
 }
 
@@ -240,7 +335,60 @@ const repeatLabel = (event) => {
   return ''
 }
 
-onMounted(loadEvents)
+const calendarWeek = computed(() => {
+  const events = Array.isArray(upcoming.value) ? upcoming.value : []
+  const start = new Date()
+  start.setHours(0, 0, 0, 0)
+
+  const dayKey = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(start)
+    d.setDate(start.getDate() + i)
+    const key = dayKey(d)
+    return { key, date: d, isToday: i === 0, events: [] }
+  })
+
+  const map = new Map(days.map((d) => [d.key, d]))
+  for (const event of events) {
+    const key = event.display_date
+      ? event.display_date
+      : (() => {
+          if (!event?.start_at) return null
+          const d = new Date(event.start_at)
+          if (Number.isNaN(d.getTime())) return null
+          return dayKey(d)
+        })()
+    if (!key) continue
+    const bucket = map.get(key)
+    if (bucket) bucket.events.push(event)
+  }
+
+  for (const day of days) {
+    day.events.sort((a, b) => new Date(a.start_at) - new Date(b.start_at))
+  }
+
+  return days
+})
+
+const formatDayLabel = (date) => {
+  if (!date) return ''
+  return date.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
+const formatEventTime = (val) => {
+  if (!val) return ''
+  if (typeof val === 'string' && /^\\d{4}-\\d{2}-\\d{2}$/.test(val.trim())) return 'Весь день'
+  const d = new Date(val)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+}
+
+onMounted(() => {
+  loadEvents()
+  loadUpcoming()
+})
 </script>
 
 <style scoped>
@@ -269,7 +417,7 @@ onMounted(loadEvents)
   margin: 0;
 }
 
-.calendar-card,
+.calendar-week-card,
 .calendar-list {
   padding: 16px;
 }
@@ -318,6 +466,7 @@ onMounted(loadEvents)
 .section-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
   margin-bottom: 12px;
 }
@@ -370,7 +519,157 @@ onMounted(loadEvents)
   gap: 4px;
 }
 
+.calendar-week {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.calendar-day {
+  background: var(--bg);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.calendar-day.today {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary-soft);
+}
+
+.calendar-day-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar-day-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  text-transform: capitalize;
+}
+
+.calendar-day-events {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.calendar-event {
+  display: grid;
+  grid-template-columns: 24px 58px 1fr;
+  gap: 8px;
+  align-items: start;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
+.calendar-event-check {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.calendar-event-check:hover {
+  color: var(--primary);
+}
+
+.calendar-event-time {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-tertiary);
+}
+
+.calendar-event-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.calendar-event.is-completed .calendar-event-title {
+  text-decoration: line-through;
+  color: var(--text-tertiary);
+}
+
+.calendar-event.is-overdue {
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.overdue-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.calendar-event-empty {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.today-badge {
+  margin-left: 6px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 2000;
+}
+
+.modal-card {
+  width: min(640px, 100%);
+  max-height: 90vh;
+  overflow: auto;
+  padding: 16px;
+}
+
 @media (max-width: 768px) {
+  .calendar-week {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 1fr);
+    overflow-x: auto;
+    padding-bottom: 10px;
+  }
+  .calendar-week::-webkit-scrollbar {
+    height: 6px;
+  }
+  .calendar-week::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 999px;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }

@@ -16,5 +16,12 @@ export const calendarApi = {
   },
   delete(id) {
     return api.delete(`/calendar/events/${id}`)
+  },
+  setOccurrenceComplete(eventId, occurrenceDate, completed) {
+    return api.post('/calendar/occurrences/complete', {
+      event_id: eventId,
+      occurrence_date: occurrenceDate,
+      completed: !!completed
+    })
   }
 }

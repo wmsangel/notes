@@ -8,6 +8,7 @@
       >
         <Menu :size="20" />
       </button>
+      <img class="header-logo" src="/logo.svg" alt="IZN Notes" />
       <Breadcrumbs />
     </div>
 
@@ -129,6 +130,13 @@ const openSettings = () => {
 
 .header-left {
   min-width: 0;
+}
+
+.header-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  box-shadow: var(--shadow-xs);
 }
 
 .mobile-menu-btn {
@@ -258,6 +266,10 @@ const openSettings = () => {
   .header {
     padding-left: calc(16px + var(--safe-left));
     padding-right: calc(16px + var(--safe-right));
+  }
+
+  .header-logo {
+    display: none;
   }
 
   .mobile-menu-btn {

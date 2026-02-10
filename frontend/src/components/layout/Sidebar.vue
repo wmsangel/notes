@@ -7,7 +7,7 @@
   >
     <div class="sidebar-header">
       <div class="logo">
-        <FileText :size="24" />
+        <img src="/logo.svg" alt="IZN Notes" class="logo-mark" />
         <span v-if="!uiStore.sidebarCollapsed">Notes</span>
       </div>
 
@@ -384,6 +384,14 @@ const closeSidebarOnMobile = () => {
   font-weight: 700;
   color: var(--primary);
   letter-spacing: -0.02em;
+}
+
+.logo-mark {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  box-shadow: var(--shadow-xs);
 }
 
 .logo svg {

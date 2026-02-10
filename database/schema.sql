@@ -160,6 +160,17 @@ CREATE TABLE IF NOT EXISTS calendar_events (
     INDEX idx_frequency (frequency)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Отметки выполненных календарных событий по дате
+CREATE TABLE IF NOT EXISTS calendar_event_occurrences (
+    event_id INT NOT NULL,
+    occurrence_date DATE NOT NULL,
+    completed_at DATETIME NULL,
+    PRIMARY KEY (event_id, occurrence_date),
+    CONSTRAINT fk_calendar_occ_event
+      FOREIGN KEY (event_id) REFERENCES calendar_events(id)
+      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Таблица для хранения Google Calendar токенов
 CREATE TABLE IF NOT EXISTS google_tokens (
     id INT PRIMARY KEY AUTO_INCREMENT,

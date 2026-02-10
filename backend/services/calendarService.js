@@ -59,6 +59,10 @@ function isSameDay(a, b) {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
 
+function dateKey(date) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+}
+
 function generateOccurrences(event, rangeStart, rangeEnd) {
     const start = toDate(event.start_at)
     if (!start) return []
@@ -78,7 +82,6 @@ function generateOccurrences(event, rangeStart, rangeEnd) {
             end_at: endAt,
             frequency: freq,
             interval_value: interval,
-            is_today: isSameDay(d, new Date()),
             source_event_id: event.id
         })
     }
@@ -260,6 +263,35 @@ export const calendarService = {
         }
     },
 
+    async setOccurrenceCompletion(eventId, occurrenceDate, completed) {
+        const dateStr = String(occurrenceDate || '').trim()
+        if (!dateStr) throw new Error('occurrence_date is required')
+        try {
+            if (completed) {
+                await db.query(
+                    `INSERT INTO calendar_event_occurrences (event_id, occurrence_date, completed_at)
+         VALUES (?, ?, NOW())
+         ON DUPLICATE KEY UPDATE completed_at = NOW()`,
+                    [eventId, dateStr]
+                )
+            } else {
+                await db.query(
+                    'DELETE FROM calendar_event_occurrences WHERE event_id = ? AND occurrence_date = ?',
+                    [eventId, dateStr]
+                )
+            }
+            return { success: true }
+        } catch (err) {
+            const msg = String(err.message || '')
+            if (/calendar_event_occurrences|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                const e = new Error('Calendar migrations not applied')
+                e.code = 'ER_MIGRATION_NEEDED'
+                throw e
+            }
+            throw err
+        }
+    },
+
     async getUpcoming(days = 7) {
         const now = new Date()
         const rangeStart = new Date(now)
@@ -291,13 +323,107 @@ export const calendarService = {
             occurrences.push(...generateOccurrences(row, rangeStart, rangeEnd))
         }
 
-        return occurrences
-            .filter(o => o.start_at >= rangeStart && o.start_at <= rangeEnd)
-            .sort((a, b) => a.start_at.getTime() - b.start_at.getTime())
-            .map(o => ({
+        const filtered = occurrences.filter(o => o.start_at >= rangeStart && o.start_at <= rangeEnd)
+        const uniqueKeys = new Set()
+        const pendingCompletions = []
+
+        for (const o of filtered) {
+            const occDate = dateKey(o.start_at)
+            const key = `${o.id}:${occDate}`
+            if (!uniqueKeys.has(key)) {
+                uniqueKeys.add(key)
+                pendingCompletions.push({ event_id: o.id, occurrence_date: occDate })
+            }
+        }
+
+        for (const row of rows) {
+            if ((row.frequency || 'none') === 'none') {
+                const start = toDate(row.start_at)
+                if (start && start < rangeStart) {
+                    const occDate = dateKey(start)
+                    const key = `${row.id}:${occDate}`
+                    if (!uniqueKeys.has(key)) {
+                        uniqueKeys.add(key)
+                        pendingCompletions.push({ event_id: row.id, occurrence_date: occDate })
+                    }
+                }
+            }
+        }
+
+        const completionMap = new Map()
+        if (pendingCompletions.length) {
+            try {
+                const eventIds = [...new Set(pendingCompletions.map(p => p.event_id))]
+                const dateList = [...new Set(pendingCompletions.map(p => p.occurrence_date))]
+                const placeholdersA = eventIds.map(() => '?').join(',')
+                const placeholdersB = dateList.map(() => '?').join(',')
+                const [completedRows] = await db.query(
+                    `SELECT event_id, occurrence_date, completed_at
+         FROM calendar_event_occurrences
+         WHERE event_id IN (${placeholdersA})
+           AND occurrence_date IN (${placeholdersB})`,
+                    [...eventIds, ...dateList]
+                )
+                for (const r of completedRows) {
+                    completionMap.set(`${r.event_id}:${r.occurrence_date}`, r.completed_at)
+                }
+            } catch (err) {
+                const msg = String(err.message || '')
+                if (!/calendar_event_occurrences|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {
+                    throw err
+                }
+            }
+        }
+
+        const todayKey = dateKey(rangeStart)
+        const result = []
+
+        for (const o of filtered) {
+            const occDate = dateKey(o.start_at)
+            const key = `${o.id}:${occDate}`
+            const completedAt = completionMap.get(key)
+            result.push({
                 ...o,
+                occurrence_date: occDate,
+                display_date: occDate,
+                is_today: occDate === todayKey,
+                is_completed: !!completedAt,
+                is_overdue: false,
                 start_at: o.start_at.toISOString(),
                 end_at: o.end_at ? o.end_at.toISOString() : null
-            }))
+            })
+        }
+
+        for (const row of rows) {
+            if ((row.frequency || 'none') !== 'none') continue
+            const start = toDate(row.start_at)
+            if (!start || start >= rangeStart) continue
+            const occDate = dateKey(start)
+            const key = `${row.id}:${occDate}`
+            if (completionMap.has(key)) continue
+            result.push({
+                id: row.id,
+                title: row.title,
+                description: row.description || null,
+                start_at: start.toISOString(),
+                end_at: row.end_at ? new Date(row.end_at).toISOString() : null,
+                frequency: 'none',
+                interval_value: 1,
+                source_event_id: row.id,
+                occurrence_date: occDate,
+                display_date: todayKey,
+                is_today: true,
+                is_completed: false,
+                is_overdue: true,
+                overdue_from: occDate
+            })
+        }
+
+        return result
+            .filter(o => o.display_date >= dateKey(rangeStart) && o.display_date <= dateKey(rangeEnd))
+            .sort((a, b) => {
+                if (a.display_date !== b.display_date) return a.display_date.localeCompare(b.display_date)
+                return new Date(a.start_at) - new Date(b.start_at)
+            })
     }
 }

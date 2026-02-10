@@ -33,6 +33,17 @@ CREATE TABLE IF NOT EXISTS todo_note_links (
     INDEX idx_note (note_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Отметки выполненных календарных событий по дате
+CREATE TABLE IF NOT EXISTS calendar_event_occurrences (
+    event_id INT NOT NULL,
+    occurrence_date DATE NOT NULL,
+    completed_at DATETIME NULL,
+    PRIMARY KEY (event_id, occurrence_date),
+    CONSTRAINT fk_calendar_occ_event
+      FOREIGN KEY (event_id) REFERENCES calendar_events(id)
+      ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Показывать задачу на главной
 ALTER TABLE todo_items
 ADD COLUMN show_on_dashboard BOOLEAN DEFAULT FALSE AFTER is_completed;
