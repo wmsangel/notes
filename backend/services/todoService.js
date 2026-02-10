@@ -112,6 +112,7 @@ export const todoService = {
                 ti.id          AS item_id,
                 ti.title       AS item_title,
                 ti.is_completed,
+                ti.show_on_dashboard,
                 ti.priority,
                 ti.due_date
              FROM todo_lists tl
@@ -145,6 +146,7 @@ export const todoService = {
                     id: row.item_id,
                     title: row.item_title,
                     is_completed: !!row.is_completed,
+                    show_on_dashboard: !!row.show_on_dashboard,
                     priority: row.priority,
                     due_date: row.due_date
                 })
@@ -211,7 +213,7 @@ export const todoService = {
     },
 
     async createItem(data) {
-        const { list_id, title, description, priority, due_date } = data
+        const { list_id, title, description, priority, due_date, show_on_dashboard } = data
 
         const [[row]] = await db.query(
             'SELECT COALESCE(MAX(position), 0) + 1 AS nextPos FROM todo_items WHERE list_id = ?',
@@ -220,9 +222,9 @@ export const todoService = {
         const nextPos = row?.nextPos ?? 1
 
         const [result] = await db.query(
-            `INSERT INTO todo_items (list_id, title, description, priority, due_date, position) 
-       VALUES (?, ?, ?, ?, ?, ?)`,
-            [list_id, title, description || null, priority || 'medium', normalizeDueDate(due_date), nextPos]
+            `INSERT INTO todo_items (list_id, title, description, priority, due_date, position, show_on_dashboard) 
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [list_id, title, description || null, priority || 'medium', normalizeDueDate(due_date), nextPos, show_on_dashboard ? 1 : 0]
         )
 
         const [items] = await db.query(
@@ -251,6 +253,10 @@ export const todoService = {
         if (data.due_date !== undefined) {
             updates.push('due_date = ?')
             values.push(normalizeDueDate(data.due_date))
+        }
+        if (data.show_on_dashboard !== undefined) {
+            updates.push('show_on_dashboard = ?')
+            values.push(data.show_on_dashboard ? 1 : 0)
         }
         if (updates.length === 0) {
             const [items] = await db.query('SELECT * FROM todo_items WHERE id = ?', [id])
@@ -293,6 +299,29 @@ export const todoService = {
             )
         }
         return { success: true }
+    },
+
+    async getListByFolderId(folderId) {
+        await this.pruneOldCompleted()
+        const [lists] = await db.query(
+            'SELECT id FROM todo_lists WHERE folder_id = ? ORDER BY updated_at DESC LIMIT 1',
+            [folderId]
+        )
+        if (!lists.length) return null
+        return await this.getListById(lists[0].id)
+    },
+
+    async getOrCreateListByFolder(folderId) {
+        const existing = await this.getListByFolderId(folderId)
+        if (existing) return existing
+        const [folders] = await db.query('SELECT id, name FROM folders WHERE id = ?', [folderId])
+        if (!folders.length) throw new Error('Folder not found')
+        const title = folders[0].name || 'Проект'
+        const [result] = await db.query(
+            'INSERT INTO todo_lists (title, folder_id) VALUES (?, ?)',
+            [title, folderId]
+        )
+        return await this.getListById(result.insertId)
     },
 
     // Связь задач с заметками

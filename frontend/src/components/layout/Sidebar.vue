@@ -43,20 +43,16 @@
         </span>
       </router-link>
 
-      <router-link to="/todos" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
-        <CheckSquare :size="20" />
-        <span v-if="!uiStore.sidebarCollapsed">TODO</span>
-      </router-link>
+      <button class="nav-item nav-item--button nav-item--folders" type="button" @click="openFoldersPanel">
+        <Folder :size="20" />
+        <span v-if="!uiStore.sidebarCollapsed">Папки</span>
+      </button>
 
       <router-link to="/calendar" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <Calendar :size="20" />
         <span v-if="!uiStore.sidebarCollapsed">Календарь</span>
       </router-link>
 
-      <router-link to="/todos-overview" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
-        <ListTodo :size="20" />
-        <span v-if="!uiStore.sidebarCollapsed">Все задачи</span>
-      </router-link>
     </nav>
 
     <div class="sidebar-section sidebar-notes-list" v-if="!uiStore.sidebarCollapsed && (pinnedNotes.length || favoriteNotes.length)">
@@ -110,7 +106,7 @@
       </div>
     </div>
 
-    <div class="sidebar-section sidebar-tags" v-if="!uiStore.sidebarCollapsed">
+    <div class="sidebar-section sidebar-tags" v-if="showTags && !uiStore.sidebarCollapsed">
       <button
           type="button"
           class="section-toggle"
@@ -174,6 +170,35 @@
       </div>
     </div>
 
+    <div class="folders-panel" v-if="showFoldersPanel">
+      <div class="folders-panel-header">
+        <span>Папки</span>
+        <div class="folders-panel-actions">
+          <button class="btn btn-icon-sm btn-ghost" @click="openFolderModal">
+            <Plus :size="16" />
+          </button>
+          <button class="btn btn-icon-sm btn-ghost" @click="closeFoldersPanel">×</button>
+        </div>
+      </div>
+      <div class="folders-panel-body">
+        <div class="folders-tree" v-if="foldersStore.folderTree.length">
+          <FolderTreeItem
+              v-for="folder in foldersStore.folderTree"
+              :key="folder.id"
+              :folder="folder"
+              @select="handleFolderSelect"
+          />
+        </div>
+        <div class="empty-folders" v-else>
+          <p>Нет папок</p>
+          <button class="btn btn-sm btn-ghost" @click="openFolderModal">
+            <Plus :size="14" />
+            Создать папку
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="sidebar-footer" v-if="!uiStore.sidebarCollapsed">
       <div class="storage-info">
         <HardDrive :size="16" />
@@ -201,14 +226,12 @@ import {
   Pin,
   Tag,
   Folder,
-  CheckSquare,
   Plus,
   Calendar,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
-  HardDrive,
-  ListTodo
+  HardDrive
 } from 'lucide-vue-next'
 
 const SIDEBAR_PINNED_KEY = 'sidebar-pinned-expanded'
@@ -262,6 +285,8 @@ const route = useRoute()
 const uiStore = useUIStore()
 const foldersStore = useFoldersStore()
 const dashboardStore = useDashboardStore()
+const showTags = ref(false)
+const showFoldersPanel = ref(false)
 
 const storageUsed = ref('0 MB')
 const storageTotal = ref('1 GB')
@@ -284,6 +309,16 @@ const openFolderModal = () => {
   uiStore.openModal(FolderModal)
 }
 
+const openFoldersPanel = () => {
+  if (window.innerWidth <= 768) {
+    showFoldersPanel.value = true
+  }
+}
+
+const closeFoldersPanel = () => {
+  showFoldersPanel.value = false
+}
+
 const handleFolderSelect = (folderId) => {
   // На мобилке, когда выбираем подпапку, игнорируем следующий клик по overlay,
   // чтобы меню не схлопывалось.
@@ -294,6 +329,7 @@ const handleFolderSelect = (folderId) => {
   router.push(`/folder/${folderId}`).finally(() => {
     setTimeout(() => { navigating.value = false }, 200)
     closeSidebarOnMobile()
+    closeFoldersPanel()
   })
 }
 
@@ -401,6 +437,17 @@ const closeSidebarOnMobile = () => {
 .nav-item.active .count {
   background: var(--primary-soft-hover);
   color: var(--primary);
+}
+
+.nav-item--folders {
+  display: none;
+}
+
+.nav-item--button {
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
 }
 
 .sidebar.collapsed .nav-item {
@@ -665,6 +712,34 @@ const closeSidebarOnMobile = () => {
   color: var(--text-secondary);
 }
 
+.folders-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: var(--bg-page);
+  display: flex;
+  flex-direction: column;
+  padding: calc(16px + var(--safe-top)) 16px 16px;
+}
+
+.folders-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.folders-panel-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.folders-panel-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -683,6 +758,14 @@ const closeSidebarOnMobile = () => {
 
   .sidebar:not(.collapsed) {
     transform: translateX(0);
+  }
+
+  .sidebar-section.sidebar-folders {
+    display: none;
+  }
+
+  .nav-item--folders {
+    display: flex;
   }
 }
 </style>

@@ -15,6 +15,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     })
     const loading = ref(false)
     const error = ref(null)
+    const lastFetchedAt = ref(0)
 
     // Actions
     async function fetchWidgets() {
@@ -31,10 +32,13 @@ export const useDashboardStore = defineStore('dashboard', () => {
         }
     }
 
-    async function fetchStats() {
+    async function fetchStats(force = false) {
+        if (!force && Date.now() - lastFetchedAt.value < 15000) return stats.value
         try {
             const response = await dashboardApi.getStats()
             stats.value = response.data
+            lastFetchedAt.value = Date.now()
+            return stats.value
         } catch (err) {
             console.error('Error fetching stats:', err)
         }

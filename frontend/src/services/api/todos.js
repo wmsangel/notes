@@ -11,6 +11,11 @@ export const getListById = async (id) => {
     return response.data
 }
 
+export const getListByFolder = async (folderId) => {
+    const response = await api.get(`/todos/folder/${folderId}`)
+    return response.data
+}
+
 export const createList = async (data) => {
     const response = await api.post('/todos/lists', data)
     return response.data

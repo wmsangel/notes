@@ -26,6 +26,7 @@ const MIGRATIONS = [
   'migrate-calendar-events.sql',
   'migrate-calendar-frequency-extend.sql',
   'migrate-dashboard-links.sql',
+  'migrate-todo-items-add-show-on-dashboard.sql',
 ];
 
 const IGNORE_CODES = new Set(['ER_DUP_FIELDNAME', 'ER_DUP_KEYNAME', 'ER_DUP_INDEX']);

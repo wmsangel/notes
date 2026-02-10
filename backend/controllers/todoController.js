@@ -32,6 +32,16 @@ export const todoController = {
         }
     },
 
+    async getListByFolder(req, res) {
+        try {
+            const list = await todoService.getOrCreateListByFolder(req.params.folderId)
+            res.json(list)
+        } catch (error) {
+            console.error('Error fetching todo list by folder:', error)
+            res.status(500).json({ error: error.message })
+        }
+    },
+
     async createList(req, res) {
         try {
             const list = await todoService.createList(req.body)

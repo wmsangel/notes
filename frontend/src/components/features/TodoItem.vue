@@ -202,32 +202,6 @@ const onDueDateChange = (e) => {
   gap: 12px;
 }
 
-.drag-handle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--border-subtle);
-  background: var(--surface-overlay);
-  color: var(--text-tertiary);
-  border-radius: 8px;
-  cursor: grab;
-  user-select: none;
-  flex-shrink: 0;
-  touch-action: manipulation;
-  transition: color 0.2s var(--ease), background 0.2s var(--ease), border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
-}
-
-.drag-handle:hover {
-  color: var(--primary);
-  background: var(--primary-soft);
-  border-color: var(--primary);
-}
-
-.drag-handle:active {
-  cursor: grabbing;
-}
 
 .checkbox-btn {
   flex-shrink: 0;

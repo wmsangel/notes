@@ -8,15 +8,15 @@
       </div>
 
       <div class="dashboard-grid">
-        <!-- Задачи на сегодня -->
+        <!-- Задачи на главной -->
         <div
-          v-if="(stats.todos?.tasks_due_today || []).length > 0"
+          v-if="(stats.todos?.tasks_on_dashboard || []).length > 0"
           class="dashboard-section card tasks-today wide"
         >
           <div class="section-header">
             <h2 class="section-title">
               <Calendar :size="20" />
-              Задачи на сегодня
+              Задачи на главной
             </h2>
             <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
               Все задачи
@@ -25,9 +25,9 @@
           </div>
           <div class="notes-list">
             <router-link
-              v-for="task in stats.todos.tasks_due_today"
+              v-for="task in stats.todos.tasks_on_dashboard"
               :key="task.id"
-              :to="`/todos/${task.list_id}`"
+              :to="task.folder_id ? `/folder/${task.folder_id}` : `/todos/${task.list_id}`"
               class="note-item task-item"
               :class="{ completed: task.is_completed }"
             >

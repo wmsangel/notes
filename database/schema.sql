@@ -99,6 +99,7 @@ CREATE TABLE IF NOT EXISTS todo_items (
     title VARCHAR(500) NOT NULL,
     description TEXT,
     is_completed BOOLEAN DEFAULT FALSE,
+    show_on_dashboard BOOLEAN DEFAULT FALSE,
     priority ENUM('low', 'medium', 'high') DEFAULT 'medium',
     due_date DATETIME NULL,
     position INT DEFAULT 0,

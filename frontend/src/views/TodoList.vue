@@ -121,9 +121,7 @@
                   @delete="deleteItem"
                 >
                   <template #prepend>
-                    <button class="drag-handle" type="button" title="Перетащить" @click.stop>
-                      <GripVertical :size="18" stroke-width="2" />
-                    </button>
+                    <button class="drag-handle" type="button" title="Перетащить" @click.stop></button>
                   </template>
                   <template #append-actions>
                     <button
@@ -322,8 +320,7 @@ import {
   Plus,
   ListTodo,
   FileText,
-  Link2,
-  GripVertical
+  Link2
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -786,6 +783,52 @@ const getTagColor = (tag) => {
   box-shadow: var(--shadow-md);
   border: 1px solid var(--primary);
   border-radius: var(--radius);
+}
+
+.drag-handle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: transparent;
+  border-radius: 8px;
+  cursor: grab;
+  user-select: none;
+}
+
+.drag-handle::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-image:
+    radial-gradient(currentColor 1.6px, transparent 1.6px),
+    radial-gradient(currentColor 1.6px, transparent 1.6px),
+    radial-gradient(currentColor 1.6px, transparent 1.6px),
+    radial-gradient(currentColor 1.6px, transparent 1.6px),
+    radial-gradient(currentColor 1.6px, transparent 1.6px),
+    radial-gradient(currentColor 1.6px, transparent 1.6px);
+  background-size: 4px 4px;
+  background-position:
+    0 0, 4px 0, 8px 0,
+    0 4px, 4px 4px, 8px 4px;
+  color: var(--text-tertiary);
+}
+
+.drag-handle:hover {
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.drag-handle:hover::before {
+  color: var(--primary);
+}
+
+.drag-handle:active {
+  cursor: grabbing;
 }
 
 .empty-state {

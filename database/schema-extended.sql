@@ -33,6 +33,10 @@ CREATE TABLE IF NOT EXISTS todo_note_links (
     INDEX idx_note (note_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Показывать задачу на главной
+ALTER TABLE todo_items
+ADD COLUMN show_on_dashboard BOOLEAN DEFAULT FALSE AFTER is_completed;
+
 -- Создаем таблицу для тегов (опционально, для автокомплита)
 CREATE TABLE IF NOT EXISTS tags (
     id INT PRIMARY KEY AUTO_INCREMENT,

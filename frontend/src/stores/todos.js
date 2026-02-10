@@ -19,6 +19,12 @@ export const useTodosStore = defineStore('todos', () => {
         return data
     }
 
+    const fetchListByFolder = async (folderId) => {
+        const data = await todosApi.getListByFolder(folderId)
+        currentList.value = data
+        return data
+    }
+
     const createList = async (listData) => {
         const newList = await todosApi.createList(listData)
         lists.value.unshift(newList)
@@ -81,6 +87,7 @@ export const useTodosStore = defineStore('todos', () => {
         currentList,
         fetchLists,
         fetchListById,
+        fetchListByFolder,
         createList,
         updateList,
         deleteList,

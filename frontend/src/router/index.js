@@ -1,5 +1,22 @@
 // frontend/src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
+import { authApi } from '@/services/api/auth'
+
+let authChecked = false
+let isAuthed = false
+
+async function ensureAuth() {
+    if (authChecked) return isAuthed
+    try {
+        await authApi.me()
+        isAuthed = true
+    } catch {
+        isAuthed = false
+    } finally {
+        authChecked = true
+    }
+    return isAuthed
+}
 
 const routes = [
     {
@@ -13,6 +30,12 @@ const routes = [
         name: 'Notes',
         component: () => import('@/views/Notes.vue'),
         meta: { title: 'Все заметки' }
+    },
+    {
+        path: '/login',
+        name: 'Login',
+        component: () => import('@/views/Login.vue'),
+        meta: { title: 'Вход', public: true }
     },
     {
         path: '/notes/:id',
@@ -77,7 +100,14 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
     document.title = to.meta.title ? `${to.meta.title} - Notes` : 'Notes System'
-    next()
+    if (to.meta.public) {
+        next()
+        return
+    }
+    ensureAuth().then((ok) => {
+        if (!ok) return next('/login')
+        next()
+    })
 })
 
 export default router

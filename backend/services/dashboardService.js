@@ -155,14 +155,14 @@ class DashboardService {
              GROUP BY tl.id
              ORDER BY tl.updated_at DESC`
         );
-        const [tasksDueToday] = await pool.query(
-            `SELECT ti.id, ti.title, ti.is_completed, ti.due_date, ti.list_id,
+        const [tasksOnDashboard] = await pool.query(
+            `SELECT ti.id, ti.title, ti.is_completed, ti.due_date, ti.list_id, ti.show_on_dashboard,
                     tl.title AS list_title, tl.folder_id, f.name AS folder_name
              FROM todo_items ti
              JOIN todo_lists tl ON ti.list_id = tl.id
              LEFT JOIN folders f ON tl.folder_id = f.id
-             WHERE DATE(ti.due_date) = CURDATE()
-             ORDER BY ti.is_completed ASC, ti.due_date ASC`
+             WHERE ti.show_on_dashboard = 1 AND ti.is_completed = 0
+             ORDER BY COALESCE(ti.due_date, ti.created_at) ASC`
         );
         let projectLinks = []
         try {
@@ -208,14 +208,16 @@ class DashboardService {
                     total: parseInt(row.total) || 0,
                     completed: parseInt(row.completed) || 0
                 })),
-                tasks_due_today: tasksDueToday.map((row) => ({
+                tasks_on_dashboard: tasksOnDashboard.map((row) => ({
                     id: row.id,
                     title: row.title,
                     is_completed: Boolean(row.is_completed),
                     due_date: row.due_date,
                     list_id: row.list_id,
                     list_title: row.list_title,
-                    folder_name: row.folder_name || null
+                    folder_id: row.folder_id || null,
+                    folder_name: row.folder_name || null,
+                    show_on_dashboard: Boolean(row.show_on_dashboard)
                 }))
             },
             favorites,
