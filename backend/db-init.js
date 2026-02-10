@@ -29,7 +29,7 @@ const MIGRATIONS = [
   'migrate-todo-items-add-show-on-dashboard.sql',
 ];
 
-const IGNORE_CODES = new Set(['ER_DUP_FIELDNAME', 'ER_DUP_KEYNAME', 'ER_DUP_INDEX']);
+const IGNORE_CODES = new Set(['ER_DUP_FIELDNAME', 'ER_DUP_KEYNAME', 'ER_DUP_INDEX', 'ER_DUP_FOREIGN_KEY']);
 
 function stripComments(sql) {
   return sql
@@ -88,7 +88,9 @@ async function runMigrations() {
         await db.query(sql);
         console.log('[db-init] миграция:', name);
       } catch (err) {
-        if (IGNORE_CODES.has(err.code)) {
+        const msg = String(err.message || '')
+        const isDupFk = /Duplicate foreign key constraint name/i.test(msg)
+        if (IGNORE_CODES.has(err.code) || isDupFk) {
           console.log('[db-init] пропуск (уже есть):', name);
         } else {
           console.error('[db-init] ошибка в', name, err.message);
