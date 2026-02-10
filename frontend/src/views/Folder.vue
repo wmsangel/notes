@@ -19,23 +19,6 @@
         </div>
 
         <div class="header-right">
-          <div class="folder-tabs">
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'notes' }"
-              @click="activeTab = 'notes'"
-            >
-              Заметки
-            </button>
-            <button
-              class="tab-btn"
-              :class="{ active: activeTab === 'tasks' }"
-              @click="activeTab = 'tasks'"
-            >
-              Задачи
-            </button>
-          </div>
-
           <div class="view-toggle" v-if="activeTab === 'notes'">
             <button
               class="view-btn"
@@ -57,14 +40,33 @@
 
           <button class="btn btn-ghost" @click="editFolder">
             <Edit2 :size="18" />
-            Редактировать
+            <span class="btn-text">Редактировать</span>
           </button>
 
           <button class="btn btn-primary" v-if="activeTab === 'notes'" @click="createNote">
             <Plus :size="18" />
-            Создать заметку
+            <span class="btn-text">Создать заметку</span>
           </button>
         </div>
+      </div>
+
+      <div class="section-switch">
+        <button
+          class="switch-btn"
+          :class="{ active: activeTab === 'notes' }"
+          @click="activeTab = 'notes'"
+        >
+          <FileText :size="16" />
+          <span>Заметки</span>
+        </button>
+        <button
+          class="switch-btn"
+          :class="{ active: activeTab === 'tasks' }"
+          @click="activeTab = 'tasks'"
+        >
+          <ListTodo :size="16" />
+          <span>Задачи</span>
+        </button>
       </div>
 
       <template v-if="activeTab === 'notes'">
@@ -566,28 +568,36 @@ const onReorderEndTodo = async () => {
   gap: 12px;
 }
 
-.folder-tabs {
-  display: inline-flex;
-  gap: 6px;
+.section-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
   background: var(--bg-secondary);
-  padding: 4px;
-  border-radius: var(--radius-sm);
+  padding: 6px;
+  border-radius: var(--radius-md);
+  margin: 6px 0 18px;
 }
 
-.tab-btn {
+.switch-btn {
   border: none;
   background: transparent;
-  padding: 6px 12px;
+  padding: 10px 12px;
   border-radius: var(--radius-sm);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: var(--transition);
 }
 
-.tab-btn.active {
+.switch-btn.active {
   background: var(--bg);
   color: var(--primary);
+  box-shadow: var(--shadow-sm);
 }
 
 .view-toggle {
@@ -780,6 +790,18 @@ const onReorderEndTodo = async () => {
   .page-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+  .header-left {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .header-right {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+  .btn-text {
+    display: none;
   }
   .add-item-section {
     flex-direction: column;

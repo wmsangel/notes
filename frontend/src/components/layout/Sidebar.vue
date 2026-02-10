@@ -53,6 +53,11 @@
         <span v-if="!uiStore.sidebarCollapsed">Календарь</span>
       </router-link>
 
+      <router-link to="/todos-overview" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
+        <ListTodo :size="20" />
+        <span v-if="!uiStore.sidebarCollapsed">Все задачи</span>
+      </router-link>
+
     </nav>
 
     <div class="sidebar-section sidebar-notes-list" v-if="!uiStore.sidebarCollapsed && (pinnedNotes.length || favoriteNotes.length)">
@@ -228,6 +233,7 @@ import {
   Folder,
   Plus,
   Calendar,
+  ListTodo,
   ChevronLeft,
   ChevronRight,
   ChevronDown,

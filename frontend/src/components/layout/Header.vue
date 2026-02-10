@@ -8,6 +8,7 @@
       >
         <Menu :size="20" />
       </button>
+      <Breadcrumbs />
     </div>
 
     <div class="header-right">
@@ -70,6 +71,7 @@ import { useNotesStore } from '@/stores/notes'
 import { useTheme } from '@/composables/useTheme'
 import { Menu, RefreshCw, Settings, Sun, Moon, Download } from 'lucide-vue-next'
 import { usePwaInstall } from '@/composables/usePwaInstall'
+import Breadcrumbs from './Breadcrumbs.vue'
 
 const router = useRouter()
 const pwa = usePwaInstall()
@@ -123,6 +125,10 @@ const openSettings = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.header-left {
+  min-width: 0;
 }
 
 .mobile-menu-btn {

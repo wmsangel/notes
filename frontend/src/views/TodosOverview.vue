@@ -2,8 +2,8 @@
   <MainLayout>
     <div class="todos-overview-page">
       <div class="page-header">
-        <h1 class="page-title">Все задачи</h1>
-        <p class="page-subtitle">Обзор всех списков и задач</p>
+        <h1 class="page-title">Активные задачи</h1>
+        <p class="page-subtitle">Все активные задачи из проектов</p>
       </div>
 
       <div v-if="loading" class="loading-state">
@@ -14,10 +14,10 @@
       <div v-else-if="!lists.length" class="empty-state">
         <ListTodo :size="64" class="empty-icon" />
         <h2 class="empty-title">Нет задач</h2>
-        <p class="empty-text">Создайте хотя бы один список задач, чтобы видеть обзор.</p>
-        <router-link to="/todos" class="btn btn-primary">
+        <p class="empty-text">Создайте хотя бы один проект, чтобы добавить задачи.</p>
+        <router-link to="/notes" class="btn btn-primary">
           <Plus :size="18" />
-          Перейти к спискам
+          Перейти к проектам
         </router-link>
       </div>
 
@@ -129,60 +129,6 @@
             <span>Нет активных задач</span>
           </div>
 
-          <button
-            v-if="listStates[list.id]?.completed?.length"
-            class="toggle-completed"
-            @click="toggleCompleted(list.id)"
-          >
-            <ChevronDown
-              :size="14"
-              class="chevron"
-              :class="{ 'chevron--collapsed': !expandedCompleted[list.id] }"
-            />
-            <span>Выполнено: {{ listStates[list.id].completed.length }}</span>
-          </button>
-
-          <div
-            v-if="listStates[list.id]?.completed?.length && expandedCompleted[list.id]"
-            class="group-items completed"
-          >
-            <draggable
-              v-model="listStates[list.id].completed"
-              item-key="id"
-              handle=".drag-handle"
-              ghost-class="drag-ghost"
-              chosen-class="drag-chosen"
-              :delay="150"
-              :delayOnTouchOnly="true"
-              :touchStartThreshold="8"
-              @end="onReorder(list.id)"
-            >
-              <template #item="{ element: item }">
-                <div class="task-row completed">
-                  <TodoItem
-                    :item="item"
-                    @toggle="(id) => toggleItem(list.id, id)"
-                    @update="(id, data) => updateItem(list.id, id, data)"
-                    @delete="(id) => deleteItem(list.id, id)"
-                  >
-                    <template #prepend>
-                      <button class="drag-handle" type="button" title="Перетащить" @click.stop></button>
-                    </template>
-                    <template #append-actions>
-                      <button
-                        class="btn btn-icon-sm btn-ghost link-note-btn"
-                        @click.stop="openItemLinkModal(list.id, item.id)"
-                        title="Привязать заметку"
-                        aria-label="Привязать заметку"
-                      >
-                        <Link2 :size="16" />
-                      </button>
-                    </template>
-                  </TodoItem>
-                </div>
-              </template>
-            </draggable>
-          </div>
         </section>
       </div>
 
@@ -271,7 +217,7 @@ import { useUIStore } from '@/stores/ui'
 import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
-import { ListTodo, Loader, Plus, ChevronRight, ChevronDown, FileText, Link2 } from 'lucide-vue-next'
+import { ListTodo, Loader, Plus, ChevronRight, FileText, Link2 } from 'lucide-vue-next'
 
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
@@ -280,7 +226,6 @@ const uiStore = useUIStore()
 
 const loading = ref(true)
 const lists = ref([])
-const expandedCompleted = ref({})
 const listStates = reactive({})
 const itemLinks = reactive({})
 const newItemTitles = reactive({})
@@ -426,9 +371,6 @@ const onReorder = async (listId) => {
   }
 }
 
-const toggleCompleted = (listId) => {
-  expandedCompleted.value[listId] = !expandedCompleted.value[listId]
-}
 
 const openItemLinkModal = (listId, itemId) => {
   selectedItemId.value = itemId
