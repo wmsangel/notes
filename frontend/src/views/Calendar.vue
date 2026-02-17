@@ -521,7 +521,7 @@ onMounted(() => {
 
 .calendar-week {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -609,8 +609,9 @@ onMounted(() => {
   color: var(--text);
   min-width: 0;
   overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .calendar-event.is-completed .calendar-event-title {

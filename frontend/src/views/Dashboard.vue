@@ -69,10 +69,18 @@
               <ListTodo :size="20" />
               Задачи
             </h2>
-            <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
-              Все задачи
-              <ArrowRight :size="16" />
-            </router-link>
+            <div class="section-actions">
+              <button class="btn btn-sm btn-ghost" type="button" @click="expandAllTodoGroups">
+                Раскрыть всё
+              </button>
+              <button class="btn btn-sm btn-ghost" type="button" @click="collapseAllTodoGroups">
+                Скрыть всё
+              </button>
+              <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
+                Все задачи
+                <ArrowRight :size="16" />
+              </router-link>
+            </div>
           </div>
           <div v-if="todoOverviewLoading" class="empty-state">
             <p>Загрузка задач...</p>
@@ -120,7 +128,7 @@
         </div>
 
         <!-- 3. Проекты -->
-        <div class="project-links card">
+        <div class="project-links card wide">
           <div class="section-header">
             <h2 class="section-title">
               <Link2 :size="20" />
@@ -177,12 +185,12 @@
               <ArrowRight :size="16" />
             </router-link>
           </div>
-          <div class="notes-list">
+          <div class="notes-list notes-list-grid notes-list-grid-3">
             <router-link
                 v-for="note in stats.notes?.recent || []"
                 :key="note.id"
                 :to="`/notes/${note.id}`"
-                class="note-item"
+                class="note-item note-item-card"
                 :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
             >
               <div class="note-info">
@@ -199,7 +207,7 @@
         </div>
 
         <!-- 5. Избранное -->
-        <div class="dashboard-section card">
+        <div class="dashboard-section card wide">
           <div class="section-header">
             <h2 class="section-title">
               <Star :size="20" />
@@ -344,6 +352,14 @@ const isTodoGroupOpen = (listId) => !!openTodoGroups[listId]
 
 const toggleTodoGroup = (listId) => {
   openTodoGroups[listId] = !openTodoGroups[listId]
+}
+
+const expandAllTodoGroups = () => {
+  for (const list of todoOverview.value) openTodoGroups[list.id] = true
+}
+
+const collapseAllTodoGroups = () => {
+  for (const list of todoOverview.value) openTodoGroups[list.id] = false
 }
 
 const addTodoItem = async (listId) => {
@@ -525,6 +541,12 @@ const formatEventTime = (val) => {
   justify-content: space-between;
 }
 
+.section-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .section-title {
   font-size: 14px;
   font-weight: 600;
@@ -540,6 +562,15 @@ const formatEventTime = (val) => {
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+.notes-list-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.notes-list-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .todo-accordion {
@@ -648,6 +679,12 @@ const formatEventTime = (val) => {
 
 .note-item:hover {
   background: var(--surface-raised);
+}
+
+.note-item-card {
+  min-height: 74px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-secondary);
 }
 
 .note-info {
@@ -976,9 +1013,9 @@ const formatEventTime = (val) => {
 }
 
 .project-links-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   margin-bottom: 12px;
 }
 
@@ -1038,6 +1075,19 @@ const formatEventTime = (val) => {
 
   .todo-group-add {
     flex-direction: column;
+  }
+
+  .section-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .notes-list-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .project-links-list {
+    grid-template-columns: 1fr;
   }
 }
 </style>
