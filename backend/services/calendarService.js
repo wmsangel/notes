@@ -264,8 +264,11 @@ export const calendarService = {
     },
 
     async setOccurrenceCompletion(eventId, occurrenceDate, completed) {
-        const dateStr = String(occurrenceDate || '').trim()
-        if (!dateStr) throw new Error('occurrence_date is required')
+        const dateRaw = String(occurrenceDate || '').trim()
+        const dateStr = dateRaw.length >= 10 ? dateRaw.slice(0, 10) : dateRaw
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            throw new Error('occurrence_date must be YYYY-MM-DD')
+        }
         try {
             if (completed) {
                 await db.query(
@@ -359,7 +362,7 @@ export const calendarService = {
                 const placeholdersA = eventIds.map(() => '?').join(',')
                 const placeholdersB = dateList.map(() => '?').join(',')
                 const [completedRows] = await db.query(
-                    `SELECT event_id, occurrence_date, completed_at
+                    `SELECT event_id, DATE_FORMAT(occurrence_date, '%Y-%m-%d') AS occurrence_date, completed_at
          FROM calendar_event_occurrences
          WHERE event_id IN (${placeholdersA})
            AND occurrence_date IN (${placeholdersB})`,
