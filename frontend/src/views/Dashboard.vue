@@ -504,6 +504,10 @@ const formatEventTime = (val) => {
   grid-column: 1 / -1;
 }
 
+.project-links.wide {
+  grid-column: 1 / -1;
+}
+
 .dashboard-section.wide .section-header {
   padding: 14px 18px;
 }
