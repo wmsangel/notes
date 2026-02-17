@@ -292,7 +292,8 @@ export const calendarService = {
         }
     },
 
-    async getUpcoming(days = 7) {
+    async getUpcoming(days = 7, options = {}) {
+        const includeCompleted = options.includeCompleted === true
         const now = new Date()
         const rangeStart = new Date(now)
         rangeStart.setHours(0, 0, 0, 0)
@@ -421,6 +422,7 @@ export const calendarService = {
 
         return result
             .filter(o => o.display_date >= dateKey(rangeStart) && o.display_date <= dateKey(rangeEnd))
+            .filter(o => includeCompleted || !o.is_completed)
             .sort((a, b) => {
                 if (a.display_date !== b.display_date) return a.display_date.localeCompare(b.display_date)
                 return new Date(a.start_at) - new Date(b.start_at)

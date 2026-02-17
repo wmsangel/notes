@@ -15,7 +15,8 @@ export const calendarController = {
     async getUpcoming(req, res) {
         try {
             const days = parseInt(req.query.days, 10) || 3
-            const events = await calendarService.getUpcoming(days)
+            const includeCompleted = req.query.include_completed === '1' || req.query.include_completed === 'true'
+            const events = await calendarService.getUpcoming(days, { includeCompleted })
             res.json(events)
         } catch (error) {
             console.error('Error fetching upcoming events:', error)

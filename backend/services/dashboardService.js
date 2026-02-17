@@ -178,7 +178,7 @@ class DashboardService {
         }
         let upcoming = []
         try {
-            upcoming = await calendarService.getUpcoming(7);
+            upcoming = await calendarService.getUpcoming(3);
         } catch (err) {
             const msg = String(err.message || '')
             if (!/calendar_events|doesn\\'t exist|ER_NO_SUCH_TABLE/i.test(msg)) {

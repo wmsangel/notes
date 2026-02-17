@@ -8,57 +8,8 @@
       </div>
 
       <div class="dashboard-grid">
-        <!-- Задачи на главной -->
-        <div
-          v-if="(stats.todos?.tasks_on_dashboard || []).length > 0"
-          class="dashboard-section card tasks-today wide"
-        >
-          <div class="section-header">
-            <h2 class="section-title">
-              <Calendar :size="20" />
-              Задачи на главной
-            </h2>
-            <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
-              Все задачи
-              <ArrowRight :size="16" />
-            </router-link>
-          </div>
-          <div class="notes-list">
-            <router-link
-              v-for="task in stats.todos.tasks_on_dashboard"
-              :key="task.id"
-              :to="task.folder_id ? `/folder/${task.folder_id}` : `/todos/${task.list_id}`"
-              class="note-item task-item"
-              :class="{ completed: task.is_completed }"
-            >
-              <button
-                class="task-toggle"
-                :class="{ done: task.is_completed }"
-                type="button"
-                @click.stop="toggleTask(task)"
-                :disabled="togglingTasks[task.id]"
-                title="Закрыть/открыть задачу"
-              >
-                <CheckCircle v-if="task.is_completed" :size="18" />
-                <Circle v-else :size="18" />
-              </button>
-              <div class="note-info">
-                <div class="note-title">{{ task.title }}</div>
-                <div class="note-meta">
-                  {{ task.list_title }}
-                  <span v-if="task.folder_name" class="folder-badge">{{ task.folder_name }}</span>
-                </div>
-              </div>
-              <ChevronRight :size="16" class="note-arrow" />
-            </router-link>
-          </div>
-        </div>
-
-        <!-- Календарь (ближайшие 7 дней) -->
-        <div
-          v-if="(stats.calendar_upcoming || []).length > 0"
-          class="dashboard-section card wide"
-        >
+        <!-- 1. Календарь -->
+        <div class="dashboard-section card wide">
           <div class="section-header">
             <h2 class="section-title">
               <Calendar :size="20" />
@@ -111,40 +62,111 @@
           </div>
         </div>
 
-        <!-- Заметки на главной -->
-        <div
-            v-if="(stats.dashboard_notes || []).length > 0"
-            class="dashboard-section card"
-        >
+        <!-- 2. Задачи (аккордеон) -->
+        <div class="dashboard-section card wide">
           <div class="section-header">
             <h2 class="section-title">
-              <Pin :size="20" />
-              На главной
+              <ListTodo :size="20" />
+              Задачи
             </h2>
-            <router-link to="/notes" class="btn btn-sm btn-ghost">
-              Все заметки
+            <router-link to="/todos-overview" class="btn btn-sm btn-ghost">
+              Все задачи
               <ArrowRight :size="16" />
             </router-link>
           </div>
-          <div class="notes-list">
-            <router-link
-                v-for="note in stats.dashboard_notes"
-                :key="note.id"
-                :to="`/notes/${note.id}`"
-                class="note-item"
-                :style="note.color ? { borderLeft: `1px solid ${note.color}` } : null"
-            >
-              <div class="note-info">
-                <div class="note-title">{{ note.title }}</div>
-                <div v-if="note.folder_name" class="note-folder">{{ note.folder_name }}</div>
+          <div v-if="todoOverviewLoading" class="empty-state">
+            <p>Загрузка задач...</p>
+          </div>
+          <div v-else-if="!todoOverview.length" class="empty-state">
+            <p>Нет активных задач</p>
+          </div>
+          <div v-else class="todo-accordion">
+            <div v-for="list in todoOverview" :key="list.id" class="todo-group">
+              <button class="todo-group-head" type="button" @click="toggleTodoGroup(list.id)">
+                <div class="todo-group-meta">
+                  <div class="todo-group-title">{{ list.title }}</div>
+                  <div class="todo-group-sub" v-if="list.folder_name">{{ list.folder_name }}</div>
+                </div>
+                <div class="todo-group-right">
+                  <span class="todo-group-count">{{ list.items.length }}</span>
+                  <ChevronDown :size="16" :class="{ 'todo-group-icon-open': isTodoGroupOpen(list.id) }" />
+                </div>
+              </button>
+              <div v-if="isTodoGroupOpen(list.id)" class="todo-group-body">
+                <div class="todo-group-items" v-if="list.items.length">
+                  <TodoItem
+                    v-for="item in list.items"
+                    :key="item.id"
+                    :item="item"
+                    @toggle="(id) => toggleTodoItem(list.id, id)"
+                    @update="(id, data) => updateTodoItem(list.id, id, data)"
+                    @delete="(id) => deleteTodoItem(list.id, id)"
+                  />
+                </div>
+                <div v-else class="todo-group-empty">Нет задач в списке</div>
+                <div class="todo-group-add">
+                  <input
+                    v-model="newTodoTitles[list.id]"
+                    class="input"
+                    type="text"
+                    :placeholder="`Добавить задачу в «${list.title}»`"
+                    @keydown.enter="addTodoItem(list.id)"
+                  />
+                  <button class="btn btn-primary" @click="addTodoItem(list.id)">Добавить</button>
+                </div>
               </div>
-              <ChevronRight :size="16" class="note-arrow" />
-            </router-link>
+            </div>
           </div>
         </div>
 
-        <!-- Недавние заметки -->
-        <div class="dashboard-section card">
+        <!-- 3. Проекты -->
+        <div class="project-links card">
+          <div class="section-header">
+            <h2 class="section-title">
+              <Link2 :size="20" />
+              Проекты
+            </h2>
+            <button class="btn btn-sm btn-primary" @click="openAddProjectModal">
+              Добавить проект
+            </button>
+          </div>
+
+          <div class="project-links-list" v-if="projectLinks.length">
+            <a
+              v-for="link in projectLinks"
+              :key="link.id"
+              class="project-link"
+              :href="link.url"
+              target="_blank"
+              rel="noopener"
+            >
+              <img
+                class="project-link-icon"
+                :src="link.icon_url || getFavicon(link.url)"
+                alt=""
+                loading="lazy"
+              />
+              <span class="project-link-title">{{ link.title }}</span>
+              <button
+                class="btn btn-icon-sm btn-ghost project-link-remove"
+                type="button"
+                @click.prevent="deleteLink(link.id)"
+                title="Удалить ссылку"
+              >
+                ×
+              </button>
+            </a>
+          </div>
+          <div v-else class="empty-state">
+            <p>Пока нет ссылок</p>
+            <button class="btn btn-sm btn-ghost" @click="openAddProjectModal">
+              Добавить первый проект
+            </button>
+          </div>
+        </div>
+
+        <!-- 4. Недавние заметки -->
+        <div class="dashboard-section card wide">
           <div class="section-header">
             <h2 class="section-title">
               <Clock :size="20" />
@@ -176,7 +198,7 @@
           </div>
         </div>
 
-        <!-- Избранное -->
+        <!-- 5. Избранное -->
         <div class="dashboard-section card">
           <div class="section-header">
             <h2 class="section-title">
@@ -207,99 +229,6 @@
             </div>
           </div>
         </div>
-
-        <!-- TODO списки -->
-        <div v-if="(stats.todos?.lists || []).length > 0" class="dashboard-section card wide">
-          <div class="section-header">
-            <h2 class="section-title">
-              <ListTodo :size="20" />
-              Списки задач
-            </h2>
-            <router-link to="/todos" class="btn btn-sm btn-ghost">
-              Все списки
-              <ArrowRight :size="16" />
-            </router-link>
-          </div>
-          <div class="notes-list">
-            <router-link
-              v-for="list in stats.todos.lists"
-              :key="list.id"
-              :to="`/todos/${list.id}`"
-              class="note-item"
-            >
-              <div class="note-info">
-                <div class="note-title">{{ list.title }}</div>
-                <div v-if="list.folder_name" class="note-folder">{{ list.folder_name }}</div>
-              </div>
-              <ChevronRight :size="16" class="note-arrow" />
-            </router-link>
-          </div>
-        </div>
-      </div>
-
-      <!-- Быстрый доступ к папкам -->
-      <div v-if="(stats.folders?.list || []).length > 0" class="folder-quick-access card">
-        <h2 class="section-title">
-          <Folder :size="20" />
-          Папки
-        </h2>
-        <div class="folder-chips">
-          <router-link
-              v-for="f in rootFoldersForDashboard"
-              :key="f.id"
-              :to="`/folder/${f.id}`"
-              class="folder-chip"
-          >
-            <Folder :size="16" />
-            {{ f.name }}
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Быстрые ссылки на проекты -->
-      <div class="project-links card">
-        <div class="section-header">
-          <h2 class="section-title">
-            <Link2 :size="20" />
-            Проекты
-          </h2>
-          <button class="btn btn-sm btn-primary" @click="openAddProjectModal">
-            Добавить проект
-          </button>
-        </div>
-
-        <div class="project-links-list" v-if="projectLinks.length">
-          <a
-            v-for="link in projectLinks"
-            :key="link.id"
-            class="project-link"
-            :href="link.url"
-            target="_blank"
-            rel="noopener"
-          >
-            <img
-              class="project-link-icon"
-              :src="link.icon_url || getFavicon(link.url)"
-              alt=""
-              loading="lazy"
-            />
-            <span class="project-link-title">{{ link.title }}</span>
-            <button
-              class="btn btn-icon-sm btn-ghost project-link-remove"
-              type="button"
-              @click.prevent="deleteLink(link.id)"
-              title="Удалить ссылку"
-            >
-              ×
-            </button>
-          </a>
-        </div>
-        <div v-else class="empty-state">
-          <p>Пока нет ссылок</p>
-          <button class="btn btn-sm btn-ghost" @click="openAddProjectModal">
-            Добавить первый проект
-          </button>
-        </div>
       </div>
     </div>
   </MainLayout>
@@ -312,19 +241,20 @@ import { useTodosStore } from '@/stores/todos'
 import { useUIStore } from '@/stores/ui'
 import { dashboardApi } from '@/services/api/dashboard'
 import { calendarApi } from '@/services/api/calendar'
+import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import ProjectLinkModal from '@/components/features/ProjectLinkModal.vue'
+import TodoItem from '@/components/features/TodoItem.vue'
 import {
   FileText,
   Star,
   CheckCircle,
   Circle,
-  Folder,
   Clock,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
   Calendar,
-  Pin,
   ListTodo,
   Link2
 } from 'lucide-vue-next'
@@ -334,8 +264,11 @@ const todosStore = useTodosStore()
 const uiStore = useUIStore()
 
 const stats = computed(() => dashboardStore.stats)
-const togglingTasks = reactive({})
 const projectLinks = ref([])
+const todoOverviewLoading = ref(false)
+const todoOverview = ref([])
+const openTodoGroups = reactive({})
+const newTodoTitles = reactive({})
 
 const openAddProjectModal = () => {
   uiStore.openModal(ProjectLinkModal, {
@@ -344,11 +277,6 @@ const openAddProjectModal = () => {
     }
   })
 }
-
-const rootFoldersForDashboard = computed(() => {
-  const list = stats.value?.folders?.list || []
-  return list.filter((f) => f.parent_id == null)
-})
 
 const calendarWeek = computed(() => {
   const events = Array.isArray(stats.value?.calendar_upcoming) ? stats.value.calendar_upcoming : []
@@ -387,26 +315,86 @@ const calendarWeek = computed(() => {
   return days
 })
 
+const loadTodoOverview = async () => {
+  todoOverviewLoading.value = true
+  try {
+    const data = await todosApi.getOverview({ include_completed: 0 })
+    todoOverview.value = Array.isArray(data) ? data : []
+    for (const list of todoOverview.value) {
+      if (openTodoGroups[list.id] === undefined) openTodoGroups[list.id] = true
+      if (newTodoTitles[list.id] === undefined) newTodoTitles[list.id] = ''
+    }
+  } catch (error) {
+    uiStore.showError('Ошибка загрузки задач')
+  } finally {
+    todoOverviewLoading.value = false
+  }
+}
+
 onMounted(() => {
   dashboardStore.fetchStats()
+  loadTodoOverview()
 })
 
 watch(stats, (val) => {
   projectLinks.value = Array.isArray(val?.project_links) ? [...val.project_links] : []
 }, { immediate: true })
 
-const toggleTask = async (task) => {
-  if (!task?.id || togglingTasks[task.id]) return
-  togglingTasks[task.id] = true
+const isTodoGroupOpen = (listId) => !!openTodoGroups[listId]
+
+const toggleTodoGroup = (listId) => {
+  openTodoGroups[listId] = !openTodoGroups[listId]
+}
+
+const addTodoItem = async (listId) => {
+  const title = (newTodoTitles[listId] || '').trim()
+  if (!title) return
   try {
-    await todosStore.toggleItem(task.id)
-    await dashboardStore.fetchStats()
+    const item = await todosStore.createItem({ list_id: listId, title, priority: 'medium' })
+    const list = todoOverview.value.find((l) => l.id === listId)
+    if (list) list.items.push(item)
+    newTodoTitles[listId] = ''
+  } catch (error) {
+    uiStore.showError('Ошибка добавления задачи')
+  }
+}
+
+const toggleTodoItem = async (listId, itemId) => {
+  try {
+    const updated = await todosStore.toggleItem(itemId)
+    const list = todoOverview.value.find((l) => l.id === listId)
+    if (!list) return
+    if (updated.is_completed) {
+      list.items = list.items.filter((i) => i.id !== itemId)
+      return
+    }
+    const idx = list.items.findIndex((i) => i.id === itemId)
+    if (idx !== -1) list.items[idx] = updated
   } catch (error) {
     uiStore.showError('Ошибка обновления задачи')
-  } finally {
-    setTimeout(() => {
-      togglingTasks[task.id] = false
-    }, 300)
+  }
+}
+
+const updateTodoItem = async (listId, itemId, data) => {
+  try {
+    const updated = await todosStore.updateItem(itemId, data)
+    const list = todoOverview.value.find((l) => l.id === listId)
+    if (!list) return
+    const idx = list.items.findIndex((i) => i.id === itemId)
+    if (idx !== -1) list.items[idx] = updated
+  } catch (error) {
+    uiStore.showError('Ошибка обновления задачи')
+  }
+}
+
+const deleteTodoItem = async (listId, itemId) => {
+  try {
+    await todosStore.deleteItem(itemId)
+    const list = todoOverview.value.find((l) => l.id === listId)
+    if (!list) return
+    list.items = list.items.filter((i) => i.id !== itemId)
+  } catch (error) {
+    uiStore.showError('Ошибка удаления задачи')
   }
 }
 
@@ -552,6 +540,99 @@ const formatEventTime = (val) => {
   display: flex;
   flex-direction: column;
   gap: 1px;
+}
+
+.todo-accordion {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px 12px;
+  gap: 10px;
+}
+
+.todo-group {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.todo-group-head {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.todo-group-head:hover {
+  background: var(--surface-raised);
+}
+
+.todo-group-meta {
+  min-width: 0;
+}
+
+.todo-group-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.todo-group-sub {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.todo-group-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.todo-group-count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.todo-group-icon-open {
+  transform: rotate(180deg);
+}
+
+.todo-group-body {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.todo-group-items :deep(.todo-item) {
+  padding: 12px 14px;
+}
+
+.todo-group-add {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.todo-group-empty {
+  padding: 12px;
+  color: var(--text-tertiary);
+  font-size: 13px;
 }
 
 .note-item {
@@ -889,7 +970,7 @@ const formatEventTime = (val) => {
 }
 
 .project-links {
-  margin-top: 24px;
+  margin-top: 0;
   padding: 16px;
   border-radius: var(--radius-lg);
 }
@@ -953,6 +1034,10 @@ const formatEventTime = (val) => {
 
   .page-title {
     font-size: 22px;
+  }
+
+  .todo-group-add {
+    flex-direction: column;
   }
 }
 </style>

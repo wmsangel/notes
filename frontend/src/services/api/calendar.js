@@ -5,8 +5,8 @@ export const calendarApi = {
   getAll() {
     return api.get('/calendar/events')
   },
-  getUpcoming(days = 7) {
-    return api.get('/calendar/upcoming', { params: { days } })
+  getUpcoming(days = 7, includeCompleted = false) {
+    return api.get('/calendar/upcoming', { params: { days, include_completed: includeCompleted ? 1 : 0 } })
   },
   create(data) {
     return api.post('/calendar/events', data)
