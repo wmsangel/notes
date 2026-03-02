@@ -44,7 +44,6 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/services/api/auth'
-import { GVL, TCModel } from '@iabtcf/core'
 
 const router = useRouter()
 const password = ref('')
@@ -53,43 +52,15 @@ const error = ref('')
 const adContainer = ref(null)
 const showConsentBanner = ref(false)
 const TCF_STORAGE_KEY = 'tcf_consent_v1'
+const TCF_ACCEPTED_STRING = 'CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAAAAYgAAAAAAAA'
+const TCF_REJECTED_STRING = 'CPXxRfAPXxRfAAfKABENB-CgAAAAAAAAAAQAAABAAAEAA'
 
 const tcfListeners = new Map()
 let tcfListenerSeq = 1
 let cmpConsentState = null
 
 const createTcString = async (accepted) => {
-  // @iabtcf/core requires self-hosted GVL cache endpoint
-  GVL.baseUrl = `${window.location.origin}/iab/`
-  const gvl = new GVL()
-  await gvl.readyPromise
-
-  const tcModel = new TCModel(gvl)
-  tcModel.cmpId = 300
-  tcModel.cmpVersion = 1
-  tcModel.consentScreen = 1
-  tcModel.isServiceSpecific = true
-  tcModel.useNonStandardStacks = false
-  tcModel.publisherCountryCode = 'DE'
-  tcModel.publisherCC = 'DE'
-
-  Object.keys(gvl.purposes || {}).forEach((id) => {
-    const purposeId = Number(id)
-    tcModel.purposeConsents.set(purposeId, accepted)
-    tcModel.purposeLegitimateInterests.set(purposeId, !accepted)
-  })
-
-  Object.keys(gvl.specialFeatures || {}).forEach((id) => {
-    tcModel.specialFeatureOptins.set(Number(id), accepted)
-  })
-
-  Object.keys(gvl.vendors || {}).forEach((id) => {
-    const vendorId = Number(id)
-    tcModel.vendorConsents.set(vendorId, accepted)
-    tcModel.vendorLegitimateInterests.set(vendorId, !accepted)
-  })
-
-  return tcModel.tcString
+  return accepted ? TCF_ACCEPTED_STRING : TCF_REJECTED_STRING
 }
 
 const buildTcData = () => ({
