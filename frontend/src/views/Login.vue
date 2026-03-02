@@ -59,6 +59,8 @@ let tcfListenerSeq = 1
 let cmpConsentState = null
 
 const createTcString = async (accepted) => {
+  // @iabtcf/core requires self-hosted GVL cache endpoint
+  GVL.baseUrl = `${window.location.origin}/iab/`
   const gvl = new GVL()
   await gvl.readyPromise
 
@@ -92,7 +94,7 @@ const createTcString = async (accepted) => {
 
 const buildTcData = () => ({
   tcString: cmpConsentState?.tcString || '',
-  eventStatus: 'tcloaded',
+  eventStatus: cmpConsentState?.tcString ? 'useractioncomplete' : 'cmpuishown',
   cmpStatus: 'loaded',
   gdprApplies: true
 })
@@ -157,11 +159,17 @@ const loadConsentState = () => {
 }
 
 const setConsent = async (accepted) => {
-  const tcString = await createTcString(accepted)
-  cmpConsentState = { accepted, tcString, updatedAt: Date.now() }
-  window.localStorage.setItem(TCF_STORAGE_KEY, JSON.stringify(cmpConsentState))
-  showConsentBanner.value = false
-  notifyTcfListeners()
+  error.value = ''
+  try {
+    const tcString = await createTcString(accepted)
+    cmpConsentState = { accepted, tcString, updatedAt: Date.now() }
+    window.localStorage.setItem(TCF_STORAGE_KEY, JSON.stringify(cmpConsentState))
+    showConsentBanner.value = false
+    notifyTcfListeners()
+  } catch (e) {
+    console.error('CMP consent generation failed', e)
+    error.value = 'Не удалось сохранить GDPR согласие. Попробуйте еще раз.'
+  }
 }
 
 const waitForCmpConsent = (timeoutMs = 6000) => {
@@ -196,7 +204,8 @@ const waitForCmpConsent = (timeoutMs = 6000) => {
       if (!success || !tcData) return
       listenerId = tcData.listenerId ?? listenerId
       const status = String(tcData.eventStatus || '').toLowerCase()
-      if (status === 'tcloaded' || status === 'useractioncomplete') {
+      const hasConsentString = Boolean(tcData.tcString)
+      if (!tcData.gdprApplies || (hasConsentString && (status === 'tcloaded' || status === 'useractioncomplete'))) {
         clearTimeout(timer)
         finish({
           gdprApplies: Boolean(tcData.gdprApplies),
