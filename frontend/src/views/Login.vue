@@ -40,50 +40,74 @@ const loading = ref(false)
 const error = ref('')
 const adContainer = ref(null)
 
+const waitForCmpConsent = (timeoutMs = 6000) => {
+  return new Promise((resolve) => {
+    if (typeof window === 'undefined') {
+      resolve({ gdprApplies: false, tcString: '' })
+      return
+    }
+
+    const tcfApi = window.__tcfapi
+    if (typeof tcfApi !== 'function') {
+      resolve({ gdprApplies: false, tcString: '' })
+      return
+    }
+
+    let done = false
+    let listenerId = null
+    const finish = (payload) => {
+      if (done) return
+      done = true
+      if (listenerId != null) {
+        try { tcfApi('removeEventListener', 2, () => {}, listenerId) } catch {}
+      }
+      resolve(payload)
+    }
+
+    const timer = setTimeout(() => {
+      finish({ gdprApplies: false, tcString: '' })
+    }, timeoutMs)
+
+    tcfApi('addEventListener', 2, (tcData, success) => {
+      if (!success || !tcData) return
+      listenerId = tcData.listenerId ?? listenerId
+      const status = String(tcData.eventStatus || '').toLowerCase()
+      if (status === 'tcloaded' || status === 'useractioncomplete') {
+        clearTimeout(timer)
+        finish({
+          gdprApplies: Boolean(tcData.gdprApplies),
+          tcString: tcData.tcString || ''
+        })
+      }
+    })
+  })
+}
+
 onMounted(() => {
   const container = adContainer.value
   if (!container) return
 
-  // Test-only consent stubs for ad rendering diagnostics.
-  if (typeof window !== 'undefined') {
-    if (typeof window.__tcfapi !== 'function') {
-      window.__tcfapi = (command, _version, callback) => {
-        const payload = {
-          tcString: '',
-          eventStatus: 'tcloaded',
-          cmpStatus: 'loaded',
-          gdprApplies: false
-        }
-        if (command === 'addEventListener' || command === 'getTCData') {
-          callback?.(payload, true)
-          return
-        }
-        callback?.({}, true)
-      }
+  waitForCmpConsent().then(({ gdprApplies, tcString }) => {
+    const ins = document.createElement('ins')
+    ins.className = 'asm_async_creative'
+    ins.style.cssText = 'display:inline-block;width:246px;height:369px;text-align:left;text-decoration:none;'
+    ins.setAttribute('data-asm-cdn', 'cdn.adspirit.de')
+    ins.setAttribute('data-asm-host', 'bmm.adspirit.de')
+    const params = new URLSearchParams({ pid: '45', gdpr: gdprApplies ? '1' : '0' })
+    if (gdprApplies) {
+      params.set('gdpr_consent', tcString || '')
     }
-    if (typeof window.__cmp !== 'function') {
-      window.__cmp = (_command, callback) => callback?.({ gdprAppliesGlobally: false }, true)
-    }
-    if (typeof window.__gpp !== 'function') {
-      window.__gpp = (_command, callback) => callback?.('', true)
-    }
-  }
+    ins.setAttribute('data-asm-params', params.toString())
+    container.appendChild(ins)
 
-  const ins = document.createElement('ins')
-  ins.className = 'asm_async_creative'
-  ins.style.cssText = 'display:inline-block;width:246px;height:369px;text-align:left;text-decoration:none;'
-  ins.setAttribute('data-asm-cdn', 'cdn.adspirit.de')
-  ins.setAttribute('data-asm-host', 'bmm.adspirit.de')
-  ins.setAttribute('data-asm-params', 'pid=45')
-  container.appendChild(ins)
-
-  if (!document.getElementById('adspirit-async-script')) {
-    const script = document.createElement('script')
-    script.id = 'adspirit-async-script'
-    script.src = 'https://cdn.adspirit.de/adasync.min.js'
-    script.type = 'text/javascript'
-    document.body.appendChild(script)
-  }
+    if (!document.getElementById('adspirit-async-script')) {
+      const script = document.createElement('script')
+      script.id = 'adspirit-async-script'
+      script.src = 'https://cdn.adspirit.de/adasync.min.js'
+      script.type = 'text/javascript'
+      document.body.appendChild(script)
+    }
+  })
 })
 
 const submit = async () => {
