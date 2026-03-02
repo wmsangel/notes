@@ -21,12 +21,16 @@
       </button>
 
       <p v-if="error" class="login-error">{{ error }}</p>
+
+      <div class="login-ad-wrap">
+        <div ref="adContainer"></div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { authApi } from '@/services/api/auth'
 
@@ -34,6 +38,28 @@ const router = useRouter()
 const password = ref('')
 const loading = ref(false)
 const error = ref('')
+const adContainer = ref(null)
+
+onMounted(() => {
+  const container = adContainer.value
+  if (!container) return
+
+  const ins = document.createElement('ins')
+  ins.className = 'asm_async_creative'
+  ins.style.cssText = 'display:inline-block;width:246px;height:369px;text-align:left;text-decoration:none;'
+  ins.setAttribute('data-asm-cdn', 'cdn.adspirit.de')
+  ins.setAttribute('data-asm-host', 'bmm.adspirit.de')
+  ins.setAttribute('data-asm-params', 'pid=45')
+  container.appendChild(ins)
+
+  if (!document.getElementById('adspirit-async-script')) {
+    const script = document.createElement('script')
+    script.id = 'adspirit-async-script'
+    script.src = 'https://cdn.adspirit.de/adasync.min.js'
+    script.type = 'text/javascript'
+    document.body.appendChild(script)
+  }
+})
 
 const submit = async () => {
   if (!password.value.trim()) return
@@ -111,5 +137,11 @@ const submit = async () => {
   margin: 0;
   color: var(--danger);
   font-size: 12px;
+}
+
+.login-ad-wrap {
+  margin-top: 8px;
+  display: flex;
+  justify-content: center;
 }
 </style>
