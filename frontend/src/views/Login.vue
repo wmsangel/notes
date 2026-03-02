@@ -44,6 +44,31 @@ onMounted(() => {
   const container = adContainer.value
   if (!container) return
 
+  // Test-only consent stubs for ad rendering diagnostics.
+  if (typeof window !== 'undefined') {
+    if (typeof window.__tcfapi !== 'function') {
+      window.__tcfapi = (command, _version, callback) => {
+        const payload = {
+          tcString: '',
+          eventStatus: 'tcloaded',
+          cmpStatus: 'loaded',
+          gdprApplies: false
+        }
+        if (command === 'addEventListener' || command === 'getTCData') {
+          callback?.(payload, true)
+          return
+        }
+        callback?.({}, true)
+      }
+    }
+    if (typeof window.__cmp !== 'function') {
+      window.__cmp = (_command, callback) => callback?.({ gdprAppliesGlobally: false }, true)
+    }
+    if (typeof window.__gpp !== 'function') {
+      window.__gpp = (_command, callback) => callback?.('', true)
+    }
+  }
+
   const ins = document.createElement('ins')
   ins.className = 'asm_async_creative'
   ins.style.cssText = 'display:inline-block;width:246px;height:369px;text-align:left;text-decoration:none;'
