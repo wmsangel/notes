@@ -8,7 +8,11 @@
         <div class="page-loader-spinner"></div>
       </div>
     </Transition>
-    <router-view :key="route.fullPath" />
+    <router-view v-slot="{ Component }">
+      <Transition name="page" mode="out-in">
+        <component :is="Component" :key="route.fullPath" />
+      </Transition>
+    </router-view>
   </div>
 </template>
 

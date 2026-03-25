@@ -1,5 +1,6 @@
 // backend/services/noteService.js
 import db from '../config/database.js'
+import bcrypt from 'bcrypt'
 
 /** Безопасный парсинг tags: драйвер MySQL может вернуть JSON уже как объект/массив */
 function parseTags(tags) {
@@ -21,6 +22,25 @@ function isProtected(note) {
     if (note == null) return false
     const v = note.is_protected
     return v === 1 || v === true || String(v) === '1'
+}
+
+function isBcryptHash(value) {
+    return typeof value === 'string' && /^\$2[aby]\$\d{2}\$/.test(value)
+}
+
+async function hashProtectionPassword(password) {
+    const normalized = String(password || '').trim()
+    if (!normalized) return null
+    return bcrypt.hash(normalized, 12)
+}
+
+async function compareProtectionPassword(password, storedPassword) {
+    const normalized = String(password || '').trim()
+    if (!normalized || !storedPassword) return false
+    if (isBcryptHash(storedPassword)) {
+        return bcrypt.compare(normalized, storedPassword)
+    }
+    return storedPassword === normalized
 }
 
 /** Собрать объект заметки для списка (без пароля, для защищённых — без title/content) */
@@ -167,10 +187,17 @@ export const noteService = {
             throw err
         }
 
-        if (note.protection_password !== String(password).trim()) {
+        const passwordOk = await compareProtectionPassword(password, note.protection_password)
+        if (!passwordOk) {
             const err = new Error('Invalid password')
             err.statusCode = 403
             throw err
+        }
+
+        if (note.protection_password && !isBcryptHash(note.protection_password)) {
+            const hashedPassword = await hashProtectionPassword(password)
+            await db.query('UPDATE notes SET protection_password = ? WHERE id = ?', [hashedPassword, id])
+            note.protection_password = hashedPassword
         }
 
         return {
@@ -196,6 +223,7 @@ export const noteService = {
         } = data
 
         const typeVal = note_type === 'page' ? 'page' : 'note'
+        const normalizedProtectionPassword = await hashProtectionPassword(protection_password)
 
         const insertWithPosition = async () => {
             const [[row]] = await db.query('SELECT COALESCE(MAX(position), 0) + 1 AS nextPos FROM notes')
@@ -208,7 +236,7 @@ export const noteService = {
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', typeVal, folder_id || null, is_favorite || false, is_pinned || false,
-                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
+                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, normalizedProtectionPassword,
                     protection_hint || null, nextPosition
                 ]
             )
@@ -223,7 +251,7 @@ export const noteService = {
                 [
                     (title != null && String(title).trim() !== '') ? String(title).trim() : '',
                     content || '', typeVal, folder_id || null, is_favorite || false, is_pinned || false,
-                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, protection_password || null,
+                    color || null, tags ? JSON.stringify(tags) : null, is_protected || false, normalizedProtectionPassword,
                     protection_hint || null
                 ]
             )
@@ -361,7 +389,11 @@ export const noteService = {
 
         if (protection_password !== undefined) {
             updates.push('protection_password = ?')
-            params.push(protection_password || null)
+            if (protection_password === null || String(protection_password).trim() === '') {
+                params.push(null)
+            } else {
+                params.push(await hashProtectionPassword(protection_password))
+            }
         }
 
         if (protection_hint !== undefined) {

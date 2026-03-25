@@ -248,6 +248,16 @@
     </div>
 
     <EditorContent :editor="editor" class="editor-content" />
+
+    <div v-if="editor" class="editor-statusbar">
+      <div class="editor-stats">
+        <span>{{ wordCount }} {{ wordLabel }}</span>
+        <span>{{ characterCount }} {{ characterLabel }}</span>
+      </div>
+      <div v-if="saveStatusText" class="editor-save-status" :class="saveStatusClass">
+        {{ saveStatusText }}
+      </div>
+    </div>
   </div>
 </template>
 
@@ -294,7 +304,15 @@ const props = defineProps({
     type: String,
     default: ''
   },
-  currentNoteId: { type: [Number, String], default: null }
+  currentNoteId: { type: [Number, String], default: null },
+  saveStatus: {
+    type: String,
+    default: 'idle'
+  },
+  saveStatusText: {
+    type: String,
+    default: ''
+  }
 })
 
 const emit = defineEmits(['update', 'image-upload'])
@@ -304,6 +322,35 @@ const notesStore = useNotesStore()
 const imageInput = ref(null)
 const showNoteLinkPicker = ref(false)
 const noteLinkSearch = ref('')
+const editorText = ref('')
+
+const characterCount = computed(() => editorText.value.length)
+const wordCount = computed(() => {
+  const text = editorText.value.trim()
+  return text ? text.split(/\s+/).length : 0
+})
+const characterLabel = computed(() => {
+  const count = characterCount.value % 10
+  const total = characterCount.value % 100
+  if (total >= 11 && total <= 14) return 'символов'
+  if (count === 1) return 'символ'
+  if (count >= 2 && count <= 4) return 'символа'
+  return 'символов'
+})
+const wordLabel = computed(() => {
+  const count = wordCount.value % 10
+  const total = wordCount.value % 100
+  if (total >= 11 && total <= 14) return 'слов'
+  if (count === 1) return 'слово'
+  if (count >= 2 && count <= 4) return 'слова'
+  return 'слов'
+})
+const saveStatusClass = computed(() => ({
+  'is-saving': props.saveStatus === 'saving',
+  'is-saved': props.saveStatus === 'saved',
+  'is-dirty': props.saveStatus === 'dirty',
+  'is-error': props.saveStatus === 'error'
+}))
 
 const filteredNotesForLink = computed(() => {
   const list = notesStore.notes || []
@@ -409,9 +456,15 @@ const editor = useEditor({
     }
   },
   onUpdate: ({ editor }) => {
+    editorText.value = editor.getText().replace(/\s+/g, ' ').trim()
     emit('update', editor.getHTML())
   }
 })
+
+watch(editor, (instance) => {
+  if (!instance) return
+  editorText.value = instance.getText().replace(/\s+/g, ' ').trim()
+}, { immediate: true })
 
 onBeforeUnmount(() => {
   editor.value?.destroy()
@@ -421,6 +474,7 @@ watch(() => props.content, (newContent) => {
   const isSame = editor.value?.getHTML() === newContent
   if (newContent && !isSame) {
     editor.value?.commands.setContent(newContent, false)
+    editorText.value = editor.value?.getText().replace(/\s+/g, ' ').trim() || ''
   }
 })
 
@@ -607,6 +661,48 @@ const handleImageUpload = (event) => {
 
 .editor-content {
   min-height: 400px;
+}
+
+.editor-statusbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  font-size: 12px;
+}
+
+.editor-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.editor-save-status {
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.editor-save-status.is-saving {
+  color: var(--warning);
+}
+
+.editor-save-status.is-saved {
+  color: var(--success);
+}
+
+.editor-save-status.is-dirty {
+  color: var(--primary);
+}
+
+.editor-save-status.is-error {
+  color: var(--danger);
 }
 
 .editor-content :deep(.ProseMirror) {
@@ -815,6 +911,11 @@ const handleImageUpload = (event) => {
   .editor-content :deep(.ProseMirror) {
     min-height: 50vh;
     min-height: 50dvh;
+  }
+
+  .editor-statusbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>

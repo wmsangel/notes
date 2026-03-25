@@ -6,9 +6,26 @@
         <p class="page-subtitle">Все активные задачи из проектов</p>
       </div>
 
-      <div v-if="loading" class="loading-state">
-        <Loader :size="32" class="spinner" />
-        <span>Загрузка...</span>
+      <div v-if="loading" class="overview-groups">
+        <section v-for="n in 3" :key="`overview-skeleton-${n}`" class="overview-group card">
+          <header class="group-header">
+            <div class="group-title-block" style="width: 100%">
+              <div class="skeleton skeleton-line skeleton-line-lg" style="width: 28%; margin-bottom: 8px"></div>
+              <div class="skeleton skeleton-line skeleton-line-sm" style="width: 18%"></div>
+            </div>
+            <div class="skeleton skeleton-circle" style="width: 32px; height: 32px"></div>
+          </header>
+          <div class="group-items">
+            <div v-for="item in 3" :key="`overview-task-${n}-${item}`" class="overview-skeleton-row">
+              <div class="skeleton skeleton-circle" style="width: 18px; height: 18px"></div>
+              <div class="skeleton skeleton-line" style="width: 100%"></div>
+            </div>
+          </div>
+          <div class="group-add group-add--footer">
+            <div class="skeleton skeleton-line" style="width: 100%; height: 40px"></div>
+            <div class="skeleton skeleton-line" style="width: 110px; height: 40px"></div>
+          </div>
+        </section>
       </div>
 
       <div v-else-if="!lists.length" class="empty-state">
@@ -206,7 +223,7 @@ import { useUIStore } from '@/stores/ui'
 import * as todosApi from '@/services/api/todos'
 import MainLayout from '@/components/layout/MainLayout.vue'
 import TodoItem from '@/components/features/TodoItem.vue'
-import { ListTodo, Loader, Plus, FileText, Link2 } from 'lucide-vue-next'
+import { ListTodo, Plus, FileText, Link2 } from 'lucide-vue-next'
 
 const todosStore = useTodosStore()
 const notesStore = useNotesStore()
@@ -452,22 +469,10 @@ onMounted(loadOverview)
   margin: 0;
 }
 
-.loading-state {
+.overview-skeleton-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 80px 20px;
-  gap: 16px;
-  color: var(--text-secondary);
-}
-
-.spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  gap: 10px;
 }
 
 .empty-state {

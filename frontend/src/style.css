@@ -299,6 +299,52 @@ body {
     opacity: 0;
 }
 
+.page-enter-active,
+.page-leave-active {
+    transition: opacity 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.page-enter-from,
+.page-leave-to {
+    opacity: 0;
+    transform: translateY(8px);
+}
+
+.skeleton {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(90deg, var(--bg-secondary) 0%, var(--surface-raised) 50%, var(--bg-secondary) 100%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+    height: 12px;
+    border-radius: 999px;
+}
+
+.skeleton-line-lg {
+    height: 16px;
+}
+
+.skeleton-line-sm {
+    height: 10px;
+}
+
+.skeleton-circle {
+    border-radius: 999px;
+}
+
+@keyframes skeleton-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
 .slide-enter-active, .slide-leave-active {
     transition: all 0.25s var(--ease);
 }

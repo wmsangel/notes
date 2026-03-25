@@ -163,9 +163,10 @@
             <Check :size="18" />
             <span>Сохранить</span>
           </button>
-          <div class="save-indicator" v-if="saving">
-            <Loader class="spinner" :size="16" />
-            <span>Сохранение...</span>
+          <div class="save-indicator" v-if="saveStatusText" :class="saveStateClass">
+            <Loader v-if="saveState === 'saving'" class="spinner" :size="16" />
+            <Check v-else-if="saveState === 'saved'" :size="16" />
+            <span>{{ saveStatusText }}</span>
           </div>
           <button class="btn btn-ghost" @click="deleteNote">
             <Trash2 :size="18" />
@@ -304,6 +305,8 @@
         <TiptapEditor
             :content="noteContent"
             :current-note-id="note?.id"
+            :save-status="saveState"
+            :save-status-text="saveStatusText"
             @update="handleContentChange"
         />
       </div>
@@ -408,6 +411,7 @@ const noteContent = ref('')
 const selectedFolder = ref(null)
 const saving = ref(false)
 const saved = ref(false)
+const saveError = ref(false)
 const hasUnsavedChanges = ref(false)
 
 const folderOptions = computed(() =>
@@ -492,6 +496,25 @@ function formatBytes(bytes) {
 }
 
 const isPage = computed(() => (note.value?.note_type || 'note') === 'page')
+const saveState = computed(() => {
+  if (saveError.value) return 'error'
+  if (saving.value) return 'saving'
+  if (saved.value) return 'saved'
+  if (hasUnsavedChanges.value) return 'dirty'
+  return 'idle'
+})
+const saveStatusText = computed(() => {
+  if (saveError.value) return 'Не удалось сохранить'
+  if (saving.value) return 'Автосохранение...'
+  if (saved.value) return 'Все изменения сохранены'
+  if (hasUnsavedChanges.value) return 'Есть несохраненные изменения'
+  return ''
+})
+const saveStateClass = computed(() => ({
+  saved: saveState.value === 'saved',
+  saving: saveState.value === 'saving',
+  error: saveState.value === 'error'
+}))
 
 let saveTimeout = null
 
@@ -559,6 +582,9 @@ const loadNoteContent = () => {
   selectedFolder.value = note.value.folder_id
   noteTags.value = Array.isArray(note.value.tags) ? [...note.value.tags] : []
   noteColor.value = note.value.color || null
+  hasUnsavedChanges.value = false
+  saved.value = false
+  saveError.value = false
 }
 
 const onTagInputKeydown = (e) => {
@@ -717,17 +743,20 @@ onBeforeRouteLeave(async (to, from, next) => {
 
 const handleTitleChange = () => {
   hasUnsavedChanges.value = true
+  saveError.value = false
   debouncedSave()
 }
 
 const handleContentChange = (newContent) => {
   noteContent.value = newContent
   hasUnsavedChanges.value = true
+  saveError.value = false
   debouncedSave()
 }
 
 const handleFolderChange = () => {
   hasUnsavedChanges.value = true
+  saveError.value = false
   debouncedSave()
 }
 
@@ -745,6 +774,7 @@ const setNoteColor = async (color) => {
 const debouncedSave = () => {
   clearTimeout(saveTimeout)
   saved.value = false
+  saveError.value = false
 
   saveTimeout = setTimeout(() => {
     saveNote()
@@ -766,6 +796,7 @@ const saveNote = async (force = false) => {
   }
 
   saving.value = true
+  saveError.value = false
 
   try {
     await notesStore.updateNote(note.value.id, {
@@ -782,6 +813,7 @@ const saveNote = async (force = false) => {
       saved.value = false
     }, 2000)
   } catch (error) {
+    saveError.value = true
     uiStore.showError('Ошибка сохранения')
   } finally {
     saving.value = false
@@ -1007,6 +1039,14 @@ const formatDate = (date) => {
 
 .save-indicator.saved {
   color: var(--success);
+}
+
+.save-indicator.saving {
+  color: var(--warning);
+}
+
+.save-indicator.error {
+  color: var(--danger);
 }
 
 .save-floating {

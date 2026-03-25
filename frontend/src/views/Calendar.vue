@@ -14,7 +14,21 @@
           </button>
         </div>
 
-        <div v-if="upcomingLoading" class="loading-state">Загрузка...</div>
+        <div v-if="upcomingLoading" class="calendar-week">
+          <div v-for="n in 3" :key="`upcoming-skeleton-${n}`" class="calendar-day">
+            <div class="calendar-day-header">
+              <div class="skeleton skeleton-line skeleton-line-lg" style="width: 58%"></div>
+              <div class="skeleton skeleton-line skeleton-line-sm" style="width: 52px"></div>
+            </div>
+            <div class="calendar-day-events">
+              <div v-for="item in 3" :key="`upcoming-event-${n}-${item}`" class="calendar-event">
+                <div class="skeleton skeleton-circle" style="width: 16px; height: 16px"></div>
+                <div class="skeleton skeleton-line" style="width: 56px"></div>
+                <div class="skeleton skeleton-line" style="width: 100%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div v-else class="calendar-week">
           <div
             v-for="day in calendarWeek"
@@ -63,7 +77,18 @@
           <span class="count" v-if="events.length">{{ events.length }}</span>
         </div>
 
-        <div v-if="loading" class="loading-state">Загрузка...</div>
+        <div v-if="loading" class="events-list">
+          <div v-for="n in 4" :key="`event-skeleton-${n}`" class="event-row">
+            <div class="event-info" style="width: 100%">
+              <div class="skeleton skeleton-line skeleton-line-lg" style="width: 34%; margin-bottom: 8px"></div>
+              <div class="skeleton skeleton-line skeleton-line-sm" style="width: 60%"></div>
+            </div>
+            <div class="event-actions">
+              <div class="skeleton skeleton-circle" style="width: 32px; height: 32px"></div>
+              <div class="skeleton skeleton-circle" style="width: 32px; height: 32px"></div>
+            </div>
+          </div>
+        </div>
         <div v-else-if="!events.length" class="empty-state">
           <p>Пока нет событий</p>
         </div>

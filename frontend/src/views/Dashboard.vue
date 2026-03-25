@@ -20,7 +20,22 @@
               <ArrowRight :size="16" />
             </router-link>
           </div>
-          <div class="calendar-week">
+          <div v-if="statsLoading" class="calendar-week calendar-week-skeleton">
+            <div v-for="n in 3" :key="`calendar-skeleton-${n}`" class="calendar-day">
+              <div class="calendar-day-header">
+                <div class="skeleton skeleton-line skeleton-line-lg" style="width: 60%"></div>
+                <div class="skeleton skeleton-line skeleton-line-sm" style="width: 52px"></div>
+              </div>
+              <div class="calendar-day-events">
+                <div v-for="item in 3" :key="`calendar-skeleton-row-${n}-${item}`" class="calendar-event">
+                  <div class="skeleton skeleton-circle" style="width: 16px; height: 16px"></div>
+                  <div class="skeleton skeleton-line" style="width: 56px"></div>
+                  <div class="skeleton skeleton-line" style="width: 100%; max-width: 180px"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div v-else class="calendar-week">
             <div
               v-for="day in calendarWeek"
               :key="day.key"
@@ -82,8 +97,22 @@
               </router-link>
             </div>
           </div>
-          <div v-if="todoOverviewLoading" class="empty-state">
-            <p>Загрузка задач...</p>
+          <div v-if="todoOverviewLoading" class="dashboard-skeleton-stack">
+            <div v-for="n in 3" :key="`todo-skeleton-${n}`" class="todo-group">
+              <div class="todo-group-head">
+                <div class="todo-group-meta" style="width: 100%">
+                  <div class="skeleton skeleton-line skeleton-line-lg" style="width: 34%; margin-bottom: 8px"></div>
+                  <div class="skeleton skeleton-line skeleton-line-sm" style="width: 18%"></div>
+                </div>
+                <div class="skeleton skeleton-line" style="width: 30px"></div>
+              </div>
+              <div class="todo-group-body dashboard-skeleton-body">
+                <div v-for="item in 2" :key="`todo-row-${n}-${item}`" class="dashboard-skeleton-row">
+                  <div class="skeleton skeleton-circle" style="width: 18px; height: 18px"></div>
+                  <div class="skeleton skeleton-line" style="width: 100%"></div>
+                </div>
+              </div>
+            </div>
           </div>
           <div v-else-if="!todoOverview.length" class="empty-state">
             <p>Нет активных задач</p>
@@ -273,6 +302,7 @@ const uiStore = useUIStore()
 
 const stats = computed(() => dashboardStore.stats)
 const projectLinks = ref([])
+const statsLoading = ref(true)
 const todoOverviewLoading = ref(false)
 const todoOverview = ref([])
 const openTodoGroups = reactive({})
@@ -339,8 +369,12 @@ const loadTodoOverview = async () => {
   }
 }
 
-onMounted(() => {
-  dashboardStore.fetchStats()
+onMounted(async () => {
+  try {
+    await dashboardStore.fetchStats(true)
+  } finally {
+    statsLoading.value = false
+  }
   loadTodoOverview()
 })
 
@@ -605,6 +639,24 @@ const formatEventTime = (val) => {
 
 .todo-group-head:hover {
   background: var(--surface-raised);
+}
+
+.dashboard-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 10px 12px;
+}
+
+.dashboard-skeleton-body {
+  padding: 0 12px 12px;
+}
+
+.dashboard-skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
 }
 
 .todo-group-meta {
