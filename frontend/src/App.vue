@@ -32,9 +32,8 @@ const pageLoading = ref(false)
 onMounted(() => {
   initTheme() // Инициализируем тему
 
-  const collapsed = localStorage.getItem('sidebarCollapsed')
-  if (collapsed === 'true') {
-    uiStore.sidebarCollapsed = true
+  if (window.innerWidth > 768) {
+    uiStore.setSidebarCollapsed(false)
   }
 })
 
