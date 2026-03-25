@@ -4,6 +4,8 @@ import { ref, shallowRef } from 'vue'
 import { markRaw } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
+    const clampSidebarWidth = (value) => Math.min(320, Math.max(200, Number(value) || 260))
+
     const getStoredBool = (key, fallback = false) => {
         try {
             return localStorage.getItem(key) === 'true'
@@ -14,7 +16,7 @@ export const useUIStore = defineStore('ui', () => {
     const getStoredNumber = (key, fallback) => {
         try {
             const raw = Number(localStorage.getItem(key))
-            return Number.isFinite(raw) ? raw : fallback
+            return Number.isFinite(raw) ? clampSidebarWidth(raw) : fallback
         } catch {
             return fallback
         }
@@ -62,7 +64,7 @@ export const useUIStore = defineStore('ui', () => {
     }
 
     function setSidebarWidth(value) {
-        const next = Math.min(320, Math.max(200, Number(value) || 260))
+        const next = clampSidebarWidth(value)
         sidebarWidth.value = next
         try {
             localStorage.setItem('sidebarWidth', String(next))
