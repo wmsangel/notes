@@ -1,6 +1,47 @@
 <!-- frontend/src/components/features/TiptapEditor.vue -->
 <template>
   <div class="tiptap-editor">
+    <BubbleMenu
+      v-if="editor"
+      :editor="editor"
+      :should-show="shouldShowBubbleMenu"
+      :tippy-options="{ duration: 120, placement: 'top' }"
+      class="bubble-menu"
+    >
+      <button
+        class="bubble-btn"
+        :class="{ 'is-active': editor.isActive('bold') }"
+        @click="editor.chain().focus().toggleBold().run()"
+        title="Жирный"
+      >
+        <Bold :size="16" />
+      </button>
+      <button
+        class="bubble-btn"
+        :class="{ 'is-active': editor.isActive('italic') }"
+        @click="editor.chain().focus().toggleItalic().run()"
+        title="Курсив"
+      >
+        <Italic :size="16" />
+      </button>
+      <button
+        class="bubble-btn"
+        :class="{ 'is-active': editor.isActive('underline') }"
+        @click="editor.chain().focus().toggleUnderline().run()"
+        title="Подчеркнутый"
+      >
+        <UnderlineIcon :size="16" />
+      </button>
+      <button
+        class="bubble-btn"
+        :class="{ 'is-active': editor.isActive('link') }"
+        @click="addLink"
+        title="Ссылка"
+      >
+        <LinkIcon :size="16" />
+      </button>
+    </BubbleMenu>
+
     <div class="editor-toolbar" v-if="editor">
       <div class="toolbar-group">
         <button
@@ -264,7 +305,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { useEditor, EditorContent, BubbleMenu } from '@tiptap/vue-3'
 import { useNotesStore } from '@/stores/notes'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
@@ -351,6 +392,12 @@ const saveStatusClass = computed(() => ({
   'is-dirty': props.saveStatus === 'dirty',
   'is-error': props.saveStatus === 'error'
 }))
+const shouldShowBubbleMenu = ({ editor, state, from, to }) => {
+  if (!editor?.isEditable) return false
+  if (from === to) return false
+  const text = state.doc.textBetween(from, to, ' ').trim()
+  return Boolean(text)
+}
 
 const filteredNotesForLink = computed(() => {
   const list = notesStore.notes || []
@@ -535,6 +582,42 @@ const handleImageUpload = (event) => {
   margin-bottom: 16px;
   flex-wrap: wrap;
   touch-action: manipulation;
+}
+
+.bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  background: var(--surface-overlay);
+  box-shadow: var(--shadow-lg);
+}
+
+.bubble-btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.bubble-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text);
+}
+
+.bubble-btn.is-active {
+  background: var(--primary-soft);
+  color: var(--primary);
 }
 
 .toolbar-group {

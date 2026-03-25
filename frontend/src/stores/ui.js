@@ -4,8 +4,25 @@ import { ref, shallowRef } from 'vue'
 import { markRaw } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
+    const getStoredBool = (key, fallback = false) => {
+        try {
+            return localStorage.getItem(key) === 'true'
+        } catch {
+            return fallback
+        }
+    }
+    const getStoredNumber = (key, fallback) => {
+        try {
+            const raw = Number(localStorage.getItem(key))
+            return Number.isFinite(raw) ? raw : fallback
+        } catch {
+            return fallback
+        }
+    }
+
     const sidebarOpen = ref(true)
-    const sidebarCollapsed = ref(false)
+    const sidebarCollapsed = ref(getStoredBool('sidebarCollapsed', false))
+    const sidebarWidth = ref(getStoredNumber('sidebarWidth', 260))
     const _ignoreOverlayClickUntil = ref(0)
     const modalOpen = ref(false)
     const modalComponent = shallowRef(null)
@@ -34,6 +51,21 @@ export const useUIStore = defineStore('ui', () => {
         sidebarCollapsed.value = !sidebarCollapsed.value
         try {
             localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value ? 'true' : 'false')
+        } catch (_) {}
+    }
+
+    function setSidebarCollapsed(value) {
+        sidebarCollapsed.value = !!value
+        try {
+            localStorage.setItem('sidebarCollapsed', sidebarCollapsed.value ? 'true' : 'false')
+        } catch (_) {}
+    }
+
+    function setSidebarWidth(value) {
+        const next = Math.min(320, Math.max(200, Number(value) || 260))
+        sidebarWidth.value = next
+        try {
+            localStorage.setItem('sidebarWidth', String(next))
         } catch (_) {}
     }
 
@@ -101,6 +133,7 @@ export const useUIStore = defineStore('ui', () => {
     return {
         sidebarOpen,
         sidebarCollapsed,
+        sidebarWidth,
         modalOpen,
         modalComponent,
         modalProps,
@@ -109,6 +142,8 @@ export const useUIStore = defineStore('ui', () => {
         closeSidebar,
         openSidebar,
         toggleSidebarCollapse,
+        setSidebarCollapsed,
+        setSidebarWidth,
         ignoreNextOverlayClick,
         handleSidebarOverlayClick,
         openModal,

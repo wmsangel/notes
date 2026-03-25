@@ -4,11 +4,21 @@ import { ref, computed } from 'vue'
 import { foldersApi } from '@/services/api/folders'
 
 export const useFoldersStore = defineStore('folders', () => {
+    const getStoredExpanded = () => {
+        try {
+            const raw = JSON.parse(localStorage.getItem('expandedFolderIds') || '[]')
+            return Array.isArray(raw) ? raw.map(id => String(id)) : []
+        } catch {
+            return []
+        }
+    }
+
     const folders = ref([])
     const folderTree = ref([])
     const loading = ref(false)
     const error = ref(null)
     const selectedFolderId = ref(null)
+    const expandedFolderIds = ref(getStoredExpanded())
 
     // Computed
     const selectedFolder = computed(() => {
@@ -103,6 +113,32 @@ export const useFoldersStore = defineStore('folders', () => {
         selectedFolderId.value = null
     }
 
+    function persistExpandedFolders() {
+        try {
+            localStorage.setItem('expandedFolderIds', JSON.stringify(expandedFolderIds.value))
+        } catch {}
+    }
+
+    function isFolderExpanded(id) {
+        return expandedFolderIds.value.includes(String(id))
+    }
+
+    function setFolderExpanded(id, expanded) {
+        const key = String(id)
+        if (expanded) {
+            if (!expandedFolderIds.value.includes(key)) {
+                expandedFolderIds.value = [...expandedFolderIds.value, key]
+            }
+        } else {
+            expandedFolderIds.value = expandedFolderIds.value.filter(item => item !== key)
+        }
+        persistExpandedFolders()
+    }
+
+    function toggleFolderExpanded(id) {
+        setFolderExpanded(id, !isFolderExpanded(id))
+    }
+
     // Helper function to get folder path
     function getFolderPath(folderId) {
         const path = []
@@ -123,6 +159,7 @@ export const useFoldersStore = defineStore('folders', () => {
         loading,
         error,
         selectedFolderId,
+        expandedFolderIds,
         selectedFolder,
         rootFolders,
         fetchFolders,
@@ -132,6 +169,9 @@ export const useFoldersStore = defineStore('folders', () => {
         deleteFolder,
         selectFolder,
         clearSelection,
+        isFolderExpanded,
+        setFolderExpanded,
+        toggleFolderExpanded,
         getFolderPath
     }
 })

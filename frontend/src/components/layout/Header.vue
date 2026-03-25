@@ -14,6 +14,14 @@
 
     <div class="header-right">
       <button
+          class="btn btn-ghost today-btn"
+          @click="openDailyNote"
+          title="Ежедневная заметка"
+      >
+        Сегодня
+      </button>
+
+      <button
           class="btn btn-icon btn-ghost"
           @click="handleSync"
           :disabled="syncing"
@@ -83,6 +91,14 @@ const { theme, toggleTheme } = useTheme()
 
 const syncing = ref(false)
 
+const getDailyNoteTitle = () => {
+  const today = new Date()
+  const yyyy = today.getFullYear()
+  const mm = String(today.getMonth() + 1).padStart(2, '0')
+  const dd = String(today.getDate()).padStart(2, '0')
+  return `Ежедневная заметка · ${yyyy}-${mm}-${dd}`
+}
+
 const handleSync = async () => {
   syncing.value = true
   try {
@@ -94,6 +110,27 @@ const handleSync = async () => {
     uiStore.showError('Ошибка синхронизации')
   } finally {
     syncing.value = false
+  }
+}
+
+const openDailyNote = async () => {
+  const title = getDailyNoteTitle()
+  try {
+    if (!notesStore.notes.length) {
+      await notesStore.fetchNotes()
+    }
+    const existing = notesStore.notes.find((note) => (note.title || '').trim() === title)
+    if (existing) {
+      router.push(`/notes/${existing.id}`)
+      return
+    }
+    const note = await notesStore.createNote({
+      title,
+      content: '<p>Что важно сегодня?</p>'
+    })
+    router.push(`/notes/${note.id}`)
+  } catch (error) {
+    uiStore.showError('Не удалось открыть ежедневную заметку')
   }
 }
 
@@ -157,6 +194,11 @@ const openSettings = () => {
 }
 
 .install-btn {
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+.today-btn {
   font-size: 13px;
   padding: 6px 12px;
 }
@@ -269,6 +311,10 @@ const openSettings = () => {
   }
 
   .header-logo {
+    display: none;
+  }
+
+  .today-btn {
     display: none;
   }
 

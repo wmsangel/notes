@@ -21,6 +21,52 @@
       </button>
     </div>
 
+    <div v-if="!uiStore.sidebarCollapsed" class="sidebar-search">
+      <div class="sidebar-search-field" :class="{ 'is-active': quickFindActive }">
+        <Search :size="16" class="sidebar-search-icon" />
+        <input
+          ref="quickFindInput"
+          v-model="quickFindQuery"
+          type="text"
+          class="sidebar-search-input"
+          placeholder="Поиск..."
+          @focus="handleQuickFindFocus"
+          @keydown.esc="clearQuickFind"
+        />
+        <button
+          v-if="quickFindQuery"
+          type="button"
+          class="sidebar-search-clear"
+          @click="clearQuickFind"
+        >
+          ×
+        </button>
+        <span v-else class="sidebar-search-shortcut">/</span>
+      </div>
+
+      <div v-if="quickFindActive" class="quick-find card">
+        <div class="quick-find-header">
+          <span>Быстрый поиск</span>
+          <span class="quick-find-shortcut">/</span>
+        </div>
+        <div v-if="quickFindResults.length" class="quick-find-list">
+          <button
+            v-for="item in quickFindResults"
+            :key="`${item.type}-${item.id}`"
+            type="button"
+            class="quick-find-item"
+            :class="{ active: item.isActive }"
+            @click="openQuickFindItem(item)"
+          >
+            <component :is="item.icon" :size="16" />
+            <span class="quick-find-label">{{ item.title }}</span>
+            <span class="quick-find-type">{{ item.typeLabel }}</span>
+          </button>
+        </div>
+        <div v-else class="quick-find-empty">Ничего не найдено</div>
+      </div>
+    </div>
+
     <nav class="sidebar-nav">
       <router-link to="/" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <Home :size="20" />
@@ -42,11 +88,6 @@
           {{ dashboardStore.stats.favorites?.length ?? 0 }}
         </span>
       </router-link>
-
-      <button class="nav-item nav-item--button nav-item--folders" type="button" @click="openFoldersPanel">
-        <Folder :size="20" />
-        <span v-if="!uiStore.sidebarCollapsed">Папки</span>
-      </button>
 
       <router-link to="/calendar" class="nav-item" active-class="active" @click="closeSidebarOnMobile">
         <Calendar :size="20" />
@@ -175,35 +216,6 @@
       </div>
     </div>
 
-    <div class="folders-panel" v-if="showFoldersPanel">
-      <div class="folders-panel-header">
-        <span>Папки</span>
-        <div class="folders-panel-actions">
-          <button class="btn btn-icon-sm btn-ghost" @click="openFolderModal">
-            <Plus :size="16" />
-          </button>
-          <button class="btn btn-icon-sm btn-ghost" @click="closeFoldersPanel">×</button>
-        </div>
-      </div>
-      <div class="folders-panel-body">
-        <div class="folders-tree" v-if="foldersStore.folderTree.length">
-          <FolderTreeItem
-              v-for="folder in foldersStore.folderTree"
-              :key="folder.id"
-              :folder="folder"
-              @select="handleFolderSelect"
-          />
-        </div>
-        <div class="empty-folders" v-else>
-          <p>Нет папок</p>
-          <button class="btn btn-sm btn-ghost" @click="openFolderModal">
-            <Plus :size="14" />
-            Создать папку
-          </button>
-        </div>
-      </div>
-    </div>
-
     <div class="sidebar-footer" v-if="!uiStore.sidebarCollapsed">
       <div class="storage-info">
         <HardDrive :size="16" />
@@ -217,11 +229,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUIStore } from '@/stores/ui'
 import { useFoldersStore } from '@/stores/folders'
 import { useDashboardStore } from '@/stores/dashboard'
+import { useNotesStore } from '@/stores/notes'
+import { useTodosStore } from '@/stores/todos'
 import FolderTreeItem from '@/components/features/FolderTreeItem.vue'
 import FolderModal from '@/components/features/FolderModal.vue'
 import {
@@ -234,6 +248,8 @@ import {
   Plus,
   Calendar,
   ListTodo,
+  Search,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
@@ -291,8 +307,11 @@ const route = useRoute()
 const uiStore = useUIStore()
 const foldersStore = useFoldersStore()
 const dashboardStore = useDashboardStore()
+const notesStore = useNotesStore()
+const todosStore = useTodosStore()
 const showTags = ref(false)
-const showFoldersPanel = ref(false)
+const quickFindQuery = ref('')
+const quickFindInput = ref(null)
 
 const storageUsed = ref('0 MB')
 const storageTotal = ref('1 GB')
@@ -300,29 +319,110 @@ const storageTotal = ref('1 GB')
 const pinnedNotes = computed(() => Array.isArray(dashboardStore.stats.pinned) ? dashboardStore.stats.pinned : [])
 const favoriteNotes = computed(() => Array.isArray(dashboardStore.stats.favorites) ? dashboardStore.stats.favorites : [])
 const allTags = computed(() => Array.isArray(dashboardStore.stats.tags) ? dashboardStore.stats.tags : [])
+const quickFindActive = computed(() => quickFindQuery.value.trim().length > 0)
+const quickFindResults = computed(() => {
+  const query = quickFindQuery.value.trim().toLowerCase()
+  if (!query) return []
+
+  const notes = (notesStore.notes || [])
+    .filter((note) => (note.title || '').toLowerCase().includes(query))
+    .slice(0, 4)
+    .map((note) => ({
+      id: note.id,
+      type: 'note',
+      typeLabel: 'Заметка',
+      title: note.title || 'Без названия',
+      icon: FileText,
+      to: `/notes/${note.id}`,
+      isActive: route.name === 'NoteView' && String(route.params.id) === String(note.id)
+    }))
+
+  const folders = (foldersStore.flatFolders || [])
+    .filter((folder) => (folder.name || '').toLowerCase().includes(query))
+    .slice(0, 3)
+    .map((folder) => ({
+      id: folder.id,
+      type: 'folder',
+      typeLabel: 'Папка',
+      title: folder.name,
+      icon: Folder,
+      to: `/folder/${folder.id}`,
+      isActive: route.name === 'Folder' && String(route.params.id) === String(folder.id)
+    }))
+
+  const todos = (todosStore.lists || [])
+    .filter((list) => (list.title || '').toLowerCase().includes(query))
+    .slice(0, 3)
+    .map((list) => ({
+      id: list.id,
+      type: 'todo',
+      typeLabel: 'Список',
+      title: list.title,
+      icon: CheckSquare,
+      to: `/todos/${list.id}`,
+      isActive: route.name === 'TodoList' && String(route.params.id) === String(list.id)
+    }))
+
+  return [...notes, ...folders, ...todos].slice(0, 8)
+})
 
 // Флаг для предотвращения множественных переходов
 const navigating = ref(false)
 
 onMounted(async () => {
   await Promise.all([
+    foldersStore.fetchFolders(),
     foldersStore.fetchFolderTree(),
-    dashboardStore.fetchStats()
+    dashboardStore.fetchStats(),
+    notesStore.fetchNotes(),
+    todosStore.fetchLists()
   ])
+  window.addEventListener('keydown', handleGlobalQuickFind)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleGlobalQuickFind)
+})
+
+watch(() => uiStore.sidebarCollapsed, (collapsed) => {
+  if (collapsed) quickFindQuery.value = ''
+})
+
+watch(() => route.fullPath, () => {
+  quickFindQuery.value = ''
 })
 
 const openFolderModal = () => {
   uiStore.openModal(FolderModal)
 }
 
-const openFoldersPanel = () => {
-  if (window.innerWidth <= 768) {
-    showFoldersPanel.value = true
-  }
+const handleGlobalQuickFind = (event) => {
+  if (uiStore.sidebarCollapsed || event.key !== '/') return
+  const target = event.target
+  const tagName = target?.tagName?.toLowerCase()
+  const isTypingContext = target?.isContentEditable || ['input', 'textarea', 'select'].includes(tagName)
+  if (isTypingContext) return
+  event.preventDefault()
+  quickFindInput.value?.focus()
 }
 
-const closeFoldersPanel = () => {
-  showFoldersPanel.value = false
+const handleQuickFindFocus = async () => {
+  await Promise.all([
+    foldersStore.folders.length ? Promise.resolve() : foldersStore.fetchFolders(),
+    notesStore.notes.length ? Promise.resolve() : notesStore.fetchNotes(),
+    todosStore.lists.length ? Promise.resolve() : todosStore.fetchLists()
+  ])
+}
+
+const clearQuickFind = () => {
+  quickFindQuery.value = ''
+  quickFindInput.value?.blur()
+}
+
+const openQuickFindItem = (item) => {
+  if (!item?.to) return
+  router.push(item.to)
+  closeSidebarOnMobile()
 }
 
 const handleFolderSelect = (folderId) => {
@@ -335,7 +435,6 @@ const handleFolderSelect = (folderId) => {
   router.push(`/folder/${folderId}`).finally(() => {
     setTimeout(() => { navigating.value = false }, 200)
     closeSidebarOnMobile()
-    closeFoldersPanel()
   })
 }
 
@@ -364,6 +463,131 @@ const closeSidebarOnMobile = () => {
 
 .sidebar.collapsed {
   width: 64px;
+}
+
+.sidebar-search {
+  padding: 10px 10px 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-search-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  transition: var(--transition);
+}
+
+.sidebar-search-field.is-active {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+.sidebar-search-icon {
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+}
+
+.sidebar-search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  min-width: 0;
+}
+
+.sidebar-search-input:focus {
+  outline: none;
+}
+
+.sidebar-search-shortcut,
+.quick-find-shortcut {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.sidebar-search-clear {
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.quick-find {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.quick-find-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.quick-find-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.quick-find-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: var(--transition);
+}
+
+.quick-find-item:hover,
+.quick-find-item.active {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.quick-find-label {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-find-type {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.quick-find-empty {
+  padding: 8px 4px 2px;
+  font-size: 12px;
+  color: var(--text-tertiary);
 }
 
 .sidebar-header {
@@ -451,10 +675,6 @@ const closeSidebarOnMobile = () => {
 .nav-item.active .count {
   background: var(--primary-soft-hover);
   color: var(--primary);
-}
-
-.nav-item--folders {
-  display: none;
 }
 
 .nav-item--button {
@@ -726,34 +946,6 @@ const closeSidebarOnMobile = () => {
   color: var(--text-secondary);
 }
 
-.folders-panel {
-  position: fixed;
-  inset: 0;
-  z-index: 200;
-  background: var(--bg-page);
-  display: flex;
-  flex-direction: column;
-  padding: calc(16px + var(--safe-top)) 16px 16px;
-}
-
-.folders-panel-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 700;
-  margin-bottom: 12px;
-}
-
-.folders-panel-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.folders-panel-body {
-  flex: 1;
-  overflow-y: auto;
-}
-
 @media (max-width: 768px) {
   .sidebar {
     position: fixed;
@@ -774,12 +966,8 @@ const closeSidebarOnMobile = () => {
     transform: translateX(0);
   }
 
-  .sidebar-section.sidebar-folders {
-    display: none;
-  }
-
-  .nav-item--folders {
-    display: flex;
+  .sidebar-search {
+    padding-top: 8px;
   }
 }
 </style>

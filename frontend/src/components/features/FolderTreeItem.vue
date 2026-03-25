@@ -68,8 +68,9 @@
 
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useFoldersStore } from '@/stores/folders'
+import { useNotesStore } from '@/stores/notes'
 import { useUIStore } from '@/stores/ui'
 import { Folder, ChevronRight, Plus, Edit2, Trash2, MoreVertical } from 'lucide-vue-next'
 import FolderModal from './FolderModal.vue'
@@ -81,12 +82,11 @@ const props = defineProps({
   }
 })
 
-const router = useRouter()
 const route = useRoute()
 const foldersStore = useFoldersStore()
+const notesStore = useNotesStore()
 const uiStore = useUIStore()
 
-const isExpanded = ref(false)
 const menuOpen = ref(false)
 const actionsRef = ref(null)
 
@@ -131,6 +131,19 @@ const hasChildren = computed(() => {
   return props.folder.children && props.folder.children.length > 0
 })
 
+const activeFolderId = computed(() => {
+  if (route.name === 'Folder' && route.params.id) {
+    return String(route.params.id)
+  }
+  if (route.name === 'NoteView' && notesStore.currentNote?.folder_id) {
+    return String(notesStore.currentNote.folder_id)
+  }
+  if (foldersStore.selectedFolderId != null) {
+    return String(foldersStore.selectedFolderId)
+  }
+  return null
+})
+
 function branchContainsId(node, id) {
   if (!node) return false
   if (String(node.id) === String(id)) return true
@@ -139,17 +152,18 @@ function branchContainsId(node, id) {
 }
 
 const activeInBranch = computed(() => {
-  const currentId = route.params.id
-  if (!currentId || route.name !== 'Folder') return false
-  return branchContainsId(props.folder, currentId)
+  if (!activeFolderId.value) return false
+  return branchContainsId(props.folder, activeFolderId.value)
 })
 
 const isActive = computed(() => {
-  return route.params.id == props.folder.id || foldersStore.selectedFolderId == props.folder.id
+  return activeFolderId.value === String(props.folder.id)
 })
 
+const isExpanded = computed(() => hasChildren.value && foldersStore.isFolderExpanded(props.folder.id))
+
 const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value
+  foldersStore.toggleFolderExpanded(props.folder.id)
 }
 
 const emit = defineEmits(['select'])
@@ -158,17 +172,11 @@ const handleClick = () => {
   emit('select', props.folder.id)
 }
 
-onMounted(() => {
-  if (activeInBranch.value) {
-    isExpanded.value = true
-  }
-})
-
 watch(activeInBranch, (val) => {
   if (val) {
-    isExpanded.value = true
+    foldersStore.setFolderExpanded(props.folder.id, true)
   }
-})
+}, { immediate: true })
 
 const handleAddSubfolder = () => {
   uiStore.openModal(FolderModal, {
@@ -223,6 +231,10 @@ const handleDelete = async () => {
 .folder-item.active {
   background: rgba(99, 102, 241, 0.1);
   color: var(--primary);
+}
+
+.folder-item.has-children.active {
+  box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.14);
 }
 
 .expand-btn {
