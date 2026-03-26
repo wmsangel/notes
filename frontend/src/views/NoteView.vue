@@ -32,7 +32,11 @@
           Назад
         </button>
 
-        <div class="header-meta desktop-only">
+        <div
+            v-if="showMetaMenu"
+            class="header-meta header-meta-popover desktop-only card"
+            @click.stop
+        >
           <select
               class="folder-select"
               v-model="selectedFolder"
@@ -96,6 +100,45 @@
                 maxlength="50"
             />
           </div>
+          <div class="meta-menu-divider"></div>
+          <div class="meta-menu-actions">
+            <button
+                type="button"
+                class="btn btn-ghost meta-menu-action"
+                @click="toggleFavorite"
+                :class="{ 'active': note?.is_favorite }"
+            >
+              <Star :size="16" :fill="note?.is_favorite ? 'currentColor' : 'none'" />
+              <span>Избранное</span>
+            </button>
+            <button
+                type="button"
+                class="btn btn-ghost meta-menu-action"
+                @click="toggleShowOnDashboard"
+                :class="{ 'active': note?.show_on_dashboard }"
+            >
+              <LayoutDashboard :size="16" :fill="note?.show_on_dashboard ? 'currentColor' : 'none'" />
+              <span>На главной</span>
+            </button>
+            <button
+                type="button"
+                class="btn btn-ghost meta-menu-action"
+                @click="toggleProtection"
+                :class="{ 'active': note?.is_protected }"
+            >
+              <Lock v-if="note?.is_protected" :size="16" />
+              <Unlock v-else :size="16" />
+              <span>Защита</span>
+            </button>
+            <button
+                type="button"
+                class="btn btn-ghost meta-menu-action meta-menu-action--danger"
+                @click="showMetaMenu = false; deleteNote()"
+            >
+              <Trash2 :size="16" />
+              <span>Удалить</span>
+            </button>
+          </div>
         </div>
 
         <button
@@ -109,6 +152,14 @@
         </button>
 
         <div class="header-actions desktop-only">
+          <button
+              class="btn btn-icon btn-ghost btn-meta-menu"
+              :class="{ active: showMetaMenu }"
+              @click.stop="showMetaMenu = !showMetaMenu"
+              title="Папка, цвет и теги"
+          >
+            <MoreVertical :size="18" />
+          </button>
           <template v-if="isPage">
             <button
                 class="btn btn-ghost btn-page-mode"
@@ -130,31 +181,6 @@
             </button>
           </template>
           <button
-              class="btn btn-icon btn-ghost"
-              @click="toggleFavorite"
-              :class="{ 'active': note?.is_favorite }"
-              title="Избранное"
-          >
-            <Star :size="20" :fill="note?.is_favorite ? 'currentColor' : 'none'" />
-          </button>
-          <button
-              class="btn btn-icon btn-ghost"
-              @click="toggleShowOnDashboard"
-              :class="{ 'active': note?.show_on_dashboard }"
-              title="Показать на главной"
-          >
-            <LayoutDashboard :size="20" :fill="note?.show_on_dashboard ? 'currentColor' : 'none'" />
-          </button>
-          <button
-              class="btn btn-icon btn-ghost"
-              :class="{ 'active': note?.is_protected }"
-              @click="toggleProtection"
-              title="Защита паролем"
-          >
-            <Lock :size="20" v-if="note?.is_protected" />
-            <Unlock :size="20" v-else />
-          </button>
-          <button
               class="btn btn-ghost btn-save"
               @click="saveNote(true)"
               :disabled="saving"
@@ -168,10 +194,6 @@
             <Check v-else-if="saveState === 'saved'" :size="16" />
             <span>{{ saveStatusText }}</span>
           </div>
-          <button class="btn btn-ghost" @click="deleteNote">
-            <Trash2 :size="18" />
-            Удалить
-          </button>
         </div>
       </div>
 
@@ -295,6 +317,7 @@
           class="note-title-input"
           v-model="noteTitle"
           @input="handleTitleChange"
+          @keydown.tab.prevent="focusEditorFromTitle"
           :placeholder="isPage ? 'Название страницы' : 'Название заметки'"
       />
 
@@ -303,6 +326,7 @@
       </div>
       <div v-else class="editor-wrapper">
         <TiptapEditor
+            ref="editorRef"
             :content="noteContent"
             :current-note-id="note?.id"
             :save-status="saveState"
@@ -432,10 +456,20 @@ const newTag = ref('')
 const tagInputRef = ref(null)
 const pageViewMode = ref('view')
 const showMobileMenu = ref(false)
+const showMetaMenu = ref(false)
+const editorRef = ref(null)
 
 function closeMobileMenuAndDelete () {
   showMobileMenu.value = false
   deleteNote()
+}
+
+async function focusEditorFromTitle () {
+  if (isPage.value && pageViewMode.value === 'view') {
+    pageViewMode.value = 'edit'
+  }
+  await nextTick()
+  editorRef.value?.focusEditor?.()
 }
 
 const noteColors = [
@@ -504,10 +538,10 @@ const saveState = computed(() => {
   return 'idle'
 })
 const saveStatusText = computed(() => {
-  if (saveError.value) return 'Не удалось сохранить'
-  if (saving.value) return 'Автосохранение...'
-  if (saved.value) return 'Все изменения сохранены'
-  if (hasUnsavedChanges.value) return 'Есть несохраненные изменения'
+  if (saveError.value) return 'Ошибка сохранения'
+  if (saving.value) return 'Сохранение...'
+  if (saved.value) return 'Сохранено'
+  if (hasUnsavedChanges.value) return 'Есть изменения'
   return ''
 })
 const saveStateClass = computed(() => ({
@@ -545,9 +579,12 @@ async function loadNoteForId(noteId) {
 }
 
 function handleMobileMenuClickOutside (e) {
-  if (!showMobileMenu.value) return
-  if (e.target.closest('.note-header') || e.target.closest('.mobile-menu-panel')) return
-  showMobileMenu.value = false
+  if (showMobileMenu.value && !e.target.closest('.mobile-menu-panel') && !e.target.closest('.mobile-menu-btn')) {
+    showMobileMenu.value = false
+  }
+  if (showMetaMenu.value && !e.target.closest('.header-meta-popover') && !e.target.closest('.btn-meta-menu')) {
+    showMetaMenu.value = false
+  }
 }
 
 onMounted(async () => {
@@ -894,10 +931,11 @@ const formatDate = (date) => {
 .note-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 24px;
-  gap: 16px;
+  margin-bottom: 14px;
+  gap: 10px 12px;
+  position: relative;
 }
 
 .desktop-only {
@@ -915,9 +953,46 @@ const formatDate = (date) => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px 16px;
+  gap: 8px 10px;
   flex: 1;
   min-width: 0;
+}
+
+.header-meta-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 40;
+  width: min(620px, 100%);
+  padding: 10px;
+  border: 1px solid var(--border-light);
+  box-shadow: var(--shadow-md);
+}
+
+.meta-menu-divider {
+  width: 100%;
+  height: 1px;
+  background: var(--border-light);
+  margin: 2px 0;
+}
+
+.meta-menu-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.meta-menu-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 12px;
+}
+
+.meta-menu-action--danger {
+  color: var(--danger);
 }
 
 .header-meta .meta-item {
@@ -925,7 +1000,7 @@ const formatDate = (date) => {
 }
 
 .header-meta .folder-select {
-  max-width: 180px;
+  max-width: 170px;
 }
 
 .header-meta .note-tags-row {
@@ -936,15 +1011,15 @@ const formatDate = (date) => {
 .note-color-picker {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
 .note-color-dot {
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   border-radius: 999px;
-  border: 2px solid transparent;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: var(--transition);
 }
@@ -963,8 +1038,8 @@ const formatDate = (date) => {
   background: var(--surface-raised);
   color: var(--text-secondary);
   border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
+  padding: 2px 7px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
 }
@@ -972,16 +1047,23 @@ const formatDate = (date) => {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.btn-meta-menu.active {
+  color: var(--primary);
+  background: var(--primary-soft);
 }
 
 .btn-page-mode {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 5px 8px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -1001,8 +1083,8 @@ const formatDate = (date) => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 5px 8px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-secondary);
   border-radius: var(--radius-sm);
@@ -1029,12 +1111,16 @@ const formatDate = (date) => {
 .save-indicator {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 12px;
   color: var(--text-secondary);
-  padding: 6px 12px;
+  padding: 5px 8px;
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
+  max-width: 170px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .save-indicator.saved {
@@ -1091,14 +1177,15 @@ const formatDate = (date) => {
 }
 
 .folder-select {
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: var(--transition);
+  height: 34px;
 }
 
 .note-tags-row {
@@ -1114,12 +1201,12 @@ const formatDate = (date) => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 6px 10px;
+  padding: 4px 8px;
   background: var(--surface-raised);
   color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -1148,15 +1235,16 @@ const formatDate = (date) => {
 }
 
 .tag-input {
-  min-width: 120px;
-  padding: 8px 12px;
-  font-size: 14px;
+  min-width: 108px;
+  padding: 6px 10px;
+  font-size: 13px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   color: var(--text);
   outline: none;
   transition: var(--transition);
+  height: 34px;
 }
 
 .tag-input::placeholder {

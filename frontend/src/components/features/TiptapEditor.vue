@@ -565,6 +565,14 @@ const handleImageUpload = (event) => {
   event.target.value = ''
   emit('image-upload', file)
 }
+
+const focusEditor = () => {
+  editor.value?.chain().focus('end').run()
+}
+
+defineExpose({
+  focusEditor
+})
 </script>
 
 <style scoped>
