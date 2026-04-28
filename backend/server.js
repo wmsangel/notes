@@ -12,6 +12,7 @@ import todoRoutes from './routes/todos.js';
 import dashboardRoutes from './routes/dashboard.js';
 import uploadRoutes from './routes/upload.js';
 import calendarRoutes from './routes/calendar.js';
+import exportRoutes from './routes/export.js';
 import authRoutes from './routes/auth.js';
 import cookieParser from 'cookie-parser';
 import { authRequired, csrfRequired, isPasswordConfigured } from './middleware/auth.js';
@@ -85,6 +86,7 @@ app.use('/api/todos', todoRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/calendar', calendarRoutes);
+app.use('/api/export', exportRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
