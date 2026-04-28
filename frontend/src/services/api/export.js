@@ -27,6 +27,17 @@ export const exportApi = {
             // экспорт может идти долго — крутим заметки одна за одной
             timeout: 5 * 60 * 1000
         })
+    },
+
+    /**
+     * Скачать .applescript со всеми заметками — пользователь запускает у себя на Маке.
+     * Работает независимо от того, где живёт backend.
+     */
+    downloadAppleScript(payload) {
+        return api.post('/export/apple-notes/script', payload, {
+            timeout: 5 * 60 * 1000,
+            responseType: 'blob'
+        })
     }
 }
 

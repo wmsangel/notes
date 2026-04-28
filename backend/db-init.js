@@ -91,7 +91,9 @@ async function runMigrations() {
       } catch (err) {
         const msg = String(err.message || '')
         const isDupFk = /Duplicate foreign key constraint name/i.test(msg)
-        if (IGNORE_CODES.has(err.code) || isDupFk) {
+        // ER_DUP_KEY / "Can't write; duplicate key" — ALTER TABLE спотыкается на уже существующем индексе/FK
+        const isDupKeyWrite = err.code === 'ER_DUP_KEY' || /duplicate key in table/i.test(msg)
+        if (IGNORE_CODES.has(err.code) || isDupFk || isDupKeyWrite) {
           console.log('[db-init] пропуск (уже есть):', name);
         } else {
           console.error('[db-init] ошибка в', name, err.message);

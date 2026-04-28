@@ -30,23 +30,18 @@
           <h2 class="section-title">Экспорт в Apple Notes</h2>
           <p class="setting-desc">
             Перенос заметок в стандартное приложение «Заметки» macOS.
-            Работает только когда сервер запущен на Mac — backend выполняет AppleScript
-            и передаёт заметки в Apple Notes напрямую.
+            Доступно два способа: скачать готовый AppleScript-файл и запустить
+            у себя на Маке (работает с любым сервером)
+            <template v-if="capabilities?.appleNotes?.available">
+              или нажать «Экспортировать сейчас» — backend сам отправит заметки
+              в Apple Notes, потому что запущен на macOS.
+            </template>
+            <template v-else>
+              — это самый простой путь.
+            </template>
           </p>
 
-          <div v-if="capabilitiesLoading" class="setting-desc setting-row-space">
-            Проверяем доступность…
-          </div>
-
-          <div
-              v-else-if="!capabilities?.appleNotes?.available"
-              class="setting-desc setting-row-space export-warning"
-          >
-            <strong>Недоступно.</strong>
-            {{ capabilities?.appleNotes?.reason || 'Apple Notes доступен только на macOS-сервере.' }}
-          </div>
-
-          <div v-else class="export-form">
+          <div class="export-form">
             <div class="export-field">
               <label class="form-label">Что экспортировать</label>
               <div class="radio-row">
@@ -89,15 +84,30 @@
               <span>Включить вложения (картинки + файлы)</span>
             </label>
 
-            <div class="setting-row setting-row-space">
+            <div class="setting-row setting-row-space export-actions">
               <button
                   class="btn btn-primary"
+                  :disabled="downloading"
+                  @click="runDownload"
+              >
+                {{ downloading ? 'Готовим файл…' : 'Скачать .applescript' }}
+              </button>
+
+              <button
+                  v-if="capabilities?.appleNotes?.available"
+                  class="btn btn-secondary"
                   :disabled="exporting"
                   @click="runExport"
               >
-                {{ exporting ? 'Экспортируем…' : 'Экспортировать в Apple Notes' }}
+                {{ exporting ? 'Экспортируем…' : 'Экспортировать сейчас' }}
               </button>
             </div>
+
+            <p class="form-hint download-hint">
+              Скачанный файл открой двойным кликом — запустится Script Editor.
+              Нажми ▶ Run (или ⌘R). При первом запуске macOS попросит
+              разрешить управление приложением «Заметки».
+            </p>
 
             <div v-if="exportResult" class="export-result" :class="exportResultClass">
               <div class="export-result-summary">
@@ -178,6 +188,7 @@ const exportFolderId = ref(null)
 const exportTargetFolder = ref('Imported from Notes System')
 const includeAttachments = ref(true)
 const exporting = ref(false)
+const downloading = ref(false)
 const exportResult = ref(null)
 
 const exportResultDetails = computed(() => {
@@ -210,6 +221,61 @@ async function loadFolders () {
   }
 }
 
+function buildExportPayload () {
+  const scope = exportScope.value
+  return {
+    scope,
+    folder_id: scope === 'folder' ? exportFolderId.value : null,
+    target_folder: (exportTargetFolder.value || '').trim() || undefined,
+    include_attachments: includeAttachments.value
+  }
+}
+
+function triggerBlobDownload (blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 1500)
+}
+
+async function runDownload () {
+  if (downloading.value) return
+  downloading.value = true
+  try {
+    const payload = buildExportPayload()
+    const response = await exportApi.downloadAppleScript(payload)
+    const cd = response.headers?.['content-disposition'] || ''
+    const match = /filename="?([^"]+)"?/.exec(cd)
+    const filename = match?.[1] || `notes-export-${new Date().toISOString().slice(0, 10)}.applescript`
+    triggerBlobDownload(response.data, filename)
+    const included = response.headers?.['x-export-included']
+    const total = response.headers?.['x-export-total']
+    uiStore.showSuccess(
+      `Файл готов${included && total ? `: ${included} из ${total} заметок` : ''}. Открой его на Маке двойным кликом.`
+    )
+  } catch (err) {
+    let msg = 'Ошибка генерации файла'
+    // ответ — Blob, нужно вытащить error JSON
+    const blob = err?.response?.data
+    if (blob && typeof blob.text === 'function') {
+      try {
+        const text = await blob.text()
+        const parsed = JSON.parse(text)
+        msg = parsed?.error || msg
+      } catch { msg = err?.message || msg }
+    } else {
+      msg = err?.response?.data?.error || err?.message || msg
+    }
+    uiStore.showError(msg)
+  } finally {
+    downloading.value = false
+  }
+}
+
 async function runExport () {
   if (exporting.value) return
   if (!capabilities.value?.appleNotes?.available) return
@@ -226,12 +292,7 @@ async function runExport () {
   exporting.value = true
   exportResult.value = null
   try {
-    const payload = {
-      scope,
-      folder_id: scope === 'folder' ? exportFolderId.value : null,
-      target_folder: (exportTargetFolder.value || '').trim() || undefined,
-      include_attachments: includeAttachments.value
-    }
+    const payload = buildExportPayload()
     const { data } = await exportApi.exportToAppleNotes(payload)
     exportResult.value = data
     if (data?.ok) {
@@ -425,6 +486,18 @@ const clearCache = async () => {
 .form-hint {
   font-size: 12px;
   color: var(--text-tertiary);
+}
+
+.export-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-start;
+}
+
+.download-hint {
+  margin-top: -4px;
+  line-height: 1.5;
 }
 
 .radio-row {

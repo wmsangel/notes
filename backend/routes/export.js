@@ -10,7 +10,10 @@ router.get('/capabilities', exportController.getCapabilities)
 // Список папок (для UI выбора, что экспортировать)
 router.get('/folders', exportController.getFolders)
 
-// Массовый экспорт в Apple Notes
+// Массовый экспорт в Apple Notes (через osascript на самом сервере; только если backend на macOS)
 router.post('/apple-notes', exportController.exportToAppleNotes)
+
+// Альтернатива: скачать .applescript-файл и запустить локально на Mac
+router.post('/apple-notes/script', exportController.downloadAppleScript)
 
 export default router

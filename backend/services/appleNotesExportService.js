@@ -364,10 +364,90 @@ export async function exportNotesToAppleNotes(notes, options = {}) {
     }
 }
 
+/**
+ * Сгенерировать один большой AppleScript-файл, который при запуске
+ * создаст все переданные заметки в Apple Notes.
+ *
+ * Этот вариант не требует, чтобы backend был на macOS — пользователь
+ * скачивает файл и запускает его двойным кликом у себя на Маке.
+ *
+ * notes: [{ id, title, content, is_protected }]
+ * options: { folderName, includeAttachments }
+ * → возвращает { script: string, stats: { total, included, skipped } }
+ */
+export async function buildBatchAppleScript(notes, options = {}) {
+    const folderName = (options.folderName && String(options.folderName).trim()) || DEFAULT_FOLDER_NAME
+    const includeAttachments = options.includeAttachments !== false
+    const folderAS = escapeAS(folderName)
+
+    const noteBlocks = []
+    let included = 0
+    let skipped = 0
+
+    for (const note of (notes || [])) {
+        if (!note || !note.id) continue
+        if (note.is_protected) {
+            skipped += 1
+            continue
+        }
+        try {
+            const { html, title } = await buildAppleNotesHtmlBody(note, { includeAttachments })
+            const titleAS = escapeAS(title)
+            const bodyAS = escapeAS(html)
+            noteBlocks.push(`  try
+    make new note at targetFolder with properties {name:"${titleAS}", body:"${bodyAS}"}
+    set successCount to successCount + 1
+  on error errMsg
+    set failCount to failCount + 1
+  end try`)
+            included += 1
+        } catch {
+            skipped += 1
+        }
+    }
+
+    const script = `-- Notes System → Apple Notes batch import
+-- Сгенерировано автоматически. Запусти двойным кликом или из Script Editor (⌘R).
+-- При первом запуске macOS попросит разрешить управление приложением «Заметки».
+
+set successCount to 0
+set failCount to 0
+
+tell application "Notes"
+  activate
+  set targetFolder to missing value
+  try
+    set targetFolder to folder "${folderAS}"
+  end try
+  if targetFolder is missing value then
+    try
+      set targetFolder to make new folder with properties {name:"${folderAS}"}
+    on error
+      set targetFolder to missing value
+    end try
+  end if
+
+${noteBlocks.join('\n')}
+end tell
+
+display dialog "Импорт завершён." & return & "Создано заметок: " & successCount & return & "Ошибок: " & failCount buttons {"OK"} default button "OK"
+`
+
+    return {
+        script,
+        stats: {
+            total: (notes || []).length,
+            included,
+            skipped
+        }
+    }
+}
+
 export const appleNotesExportService = {
     isAppleNotesAvailable,
     exportNoteToAppleNotes,
     exportNotesToAppleNotes,
+    buildBatchAppleScript,
     DEFAULT_FOLDER_NAME
 }
 
